@@ -1,0 +1,165 @@
+
+
+程序局部性原理：
+	空间局部性
+
+	时间局部性
+
+IO设备的部分：
+	设备控制器和设备本身
+
+	控制器：集成在主板上的一块芯片或一组芯片
+
+	驱动程序：通常应该由设备生产商；位于内核中
+
+	每个控制器都有少量的用于通信的寄存器，每个寄存器表现为一个I/O端口；
+
+	所有的寄存器组合成为设备的IO地址空间；
+
+	实现输入、输出：
+		三种方式：
+			1、轮询：忙等待；
+			2、中断：中断向量，中断号
+				内核处理中断分为两步：
+					中断上半部、中断的下半部
+			3、DMA：
+
+OS:
+	cpu: 时间片，time slice
+	memory: 虚拟地址空间
+	I/O：文件
+	
+	进程：
+		资源集：
+			cpu时间：
+			memory：抽象，虚拟地址空间 （32bits: 4G）
+			I/O: 打开的多个文件，fd (file descriptor)
+				正常文件
+				设备文件
+				管道文件
+
+	进程：task struct
+		内核为每个进程维护的一个数据结构
+
+
+
+Intel的QuickPath Interconnect技术缩写为QPI，译为快速通道互联。事实上它的官方名字叫做CSI，Common System Interface公共系统界面，用来实现芯片之间的直接互联，而不是在通过FSB连接到北桥，矛头直指AMD的HT总线。无论是速度、带宽、每个针脚的带宽、功耗等一切规格都要超越HT总线。
+
+
+SystemTap是一个跟踪和探测工具，可让用户监控并分析操作系统活动（特别是内核活动）的细节。它提供类似netstat、top、ps和 iostat等工具的输出结果，但包含为所收集信息的额外过滤和分析选项。SystemTap 提供深入准确的系统活动和程序行为分析，以便您可以准确定位系统和程序瓶颈。
+
+
+
+sar(sa), tsar, htop, dstat, glances, vmstat, netperf, iftop, ss, lsof, iostat
+
+systemtap, oprofile, perf, valgrind
+
+
+
+sched_rr
+	chrt -r 
+	1-99: 数字越大，优先级越高
+
+sched_other
+	动态调整
+	手动调整：nice, renice
+	100-139：数字越小，优先级越高
+
+
+
+
+
+noop deadline [cfq]
+
+echo "" > /sys/block/<DEVICE>/queue/scheduler
+		/sys/block/<DEVICE>/queue/iosched/
+
+
+
+
+
+
+挂载文件系统时，能提升性能的挂载选项：
+	nobarrier, noatime, nodiratime
+
+
+
+
+
+
+
+
+
+
+
+
+
+网络优化参数：
+
+net.ipv4.tcp_max_tw_buckets
+timewait的数量，默认为8192；
+
+net.ipv4.ip_local_port_range = 1024 65000
+允许系统打开的端口范围，前而为下限，后面的数字为上限；默认为“32768	61000”；
+注意：此可用范围决定了最后timewait状态的连接的数量；下面的两项可有效降低tw状态连接的数量；
+
+net.ipv4.tcp_tw_recycle = {0|1}
+是否启用timewait快速回收；注意：开启此功能在NAT环境下可能会出现严重的问题：因为TCP有一种行为，它可以缓存每个连接最新的时间戳，后续请求中如果时间戳小于缓存中的时间戳，即被视为无效并丢弃相应的请求报文；Linux是否启用这种行为取决于tcp_timestamp和tcp_tw_recycle，而前一个参数默认是启用的，所以启用后面的参数就会激活此功能；
+因此，如果是NAT环境，安全起见，应该禁用tcp_tw_recycle。另一种解决方案：把tcp_timestamps设置为0，tcp_tw_recycle设置为1并不会如想象中奏效，因为一旦关闭了tcp_timestamps，那么即便打开了tcp_tw_recycle，后面的参数也没有效果。此时降低net.ipv4.tcp_max_tw_buckets的值就可以显著降低tw连接的数量了。
+
+
+net.ipv4.tcp_tw_reuse = {0|1}
+是否开启tw重用，即是否允许将TIME-WAIT sockets 用于新的TCP连接；
+
+net.ipv4.tcp_syncookies = {0|1}
+是否开启SYN Cookies，即当SYN等待队列溢出时，是否启用cookies功能；
+
+net.ipv4.tcp_timestamps = 0
+tcp报文时间戳，关闭时可以避免序列号的卷绕，如上所述；
+
+
+net.ipv4.tcp_max_syn_backlog = 262144
+保存的那些尚未收到客户端确认信息的连接请求的最大值；默认为128，可增大此值；
+
+
+net.ipv4.tcp_synack_retries = #
+为了打开对端的连接，内核需要发送一个SYN并附带一个回应前面一个SYN的ACK，这也即所谓的三次握手中的第二次；这个设置决定了内核放弃连接之前发送SYN+ACK 包的数量；繁忙的服务器上建议设置为0或者1；
+
+net.ipv4.tcp_syn_retries = #
+在内核放弃建立连接之前发送SYN包的数量；繁忙的服务器上建议设置为0或者1；
+
+net.ipv4.tcp_max_orphans = 262144
+系统中最多有多少个TCP套接字不被关联到任何一个用户文件句柄上；如果超过这个数字，孤儿连接将即刻被复位并打印出警告信息；
+这个限制仅仅是为了防止简单的DoS 攻击，不能过分依靠它或者人为地减小这个值，如果需要修改，在确保有足够内存可用的前提下，应该增大此值；
+
+
+net.ipv4.tcp_fin_timeout = 5
+如果套接字由本端要求关闭，这个参数决定了它保持在FIN-WAIT-2状态的时间；缺省值是60秒。
+然而，对端可能会出错或意外宕机并永远不关闭连接。即使你的机器是一个轻载的WEB 服务器，也有因为大量的死套接字而内存溢出的风险，FIN-WAIT-2 的危险性比FIN-WAIT-1要小，因为每个连接最多只能消耗1.5K内存，但是它们的生存期长些；
+
+net.ipv4.tcp_keepalive_time = 30
+当keepalive起用的时候，TCP发送keepalive消息的频度，默认是是2小时；
+
+net.core.rmem_max=8388608 
+定义内核用于所有类型的连接的最大接收缓冲大小；
+
+net.core.rmem_default=65536 
+定义内核用于所有类型的连接的默认接收缓冲大小；
+
+net.core.wmem_max=8388608
+定义内核用于所有类型的连接的最大发送缓冲大小；
+
+net.core.wmem_default=65536 
+定义内核用于所有类型的连接的默认发送缓冲大小；
+
+net.ipv4.tcp_mem='8388608 8388608 8388608' 
+定义TCP协议栈使用的内存空间；分别为最小值，默认值和最大值；
+
+net.ipv4.tcp_rmem='4096 87380 8388608'
+定义TCP协议栈用于接收缓冲的内存空间；第一个值为最小值，即便当前主机内存空间吃紧，也得保证tcp协议栈至少有此大小的空间可用；第二个值为默认值，它会覆盖net.core.rmem_default中为所有协议定义的接收缓冲的大小；第三值为最大值，即能用于tcp接收缓冲的最大内存空间；
+
+net.ipv4.tcp_wmem='4096 65536 8388608'  
+定义TCP协议栈用于发送缓冲的内存空间；
+
+
+

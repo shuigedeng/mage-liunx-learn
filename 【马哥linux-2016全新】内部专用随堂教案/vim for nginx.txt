@@ -1,0 +1,17 @@
+
+1、下载nginx.vim
+
+下载页面：http://www.vim.org/scripts/script.php?script_id=1886
+
+2、安装nginx.vim
+
+将nginx.vim放置于~/.vim/syntax/目录，
+
+3、配置 nginx.vim
+
+而后在~/.vim/filetype.vim中添加如下行：
+au BufRead,BufNewFile /etc/nginx/*,/usr/local/nginx/conf/* if &ft == '' | setfiletype nginx | endif 
+
+其中“/etc/nginx”为nginx配置文件的目录。
+
+

@@ -1,0 +1,5 @@
+[xen4]
+name=xen4
+baseurl=ftp://172.16.0.1/pub/Sources/6.x86_64/virtualization_bak/xen4
+gpgcheck=0
+cost=500

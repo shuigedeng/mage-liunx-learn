@@ -1,0 +1,596 @@
+
+https://www.zabbix.com/documentation/2.4/manual/config/items/itemtypes/zabbix_agent
+
+各key的获取位置
+
+
+
+
+
+
+源码安装：
+
+下载地址：http://www.zabbix.com/download.php
+
+# tar -zxvf zabbix-2.0.0.tar.gz
+
+创建用户：
+# groupadd zabbix
+# useradd -g zabbix zabbix
+
+注意：同时安装了server和agent的节点上，建议其运行用户不要相同。
+
+
+
+创建数据库：
+
+server和proxy的运行都依赖于数据库，agent则不需要。
+
+以MySQL数据库为例：
+mysql> CREATE DATABASE zabbix CHARACTER SET utf8 COLLATE utf8_bin;
+mysql> GRANT ALL ON zabbix.* TO zbuser@'%' IDENTIFIED BY 'zbpass';
+# 请按需要修改用户名和密码；
+shell> mysql -u<username> -p<password> zabbix < database/mysql/schema.sql
+# 如果仅为proxy创建数据库，只导入schema.sql即可；否则，请继续下面的步骤；
+
+shell> mysql -u<username> -p<password> zabbix < database/mysql/images.sql
+shell> mysql -u<username> -p<password> zabbix < database/mysql/data.sql
+
+
+
+编译安装zabbix:
+
+同时安装server和agent，并支持将数据放入mysql数据中，可使用类似如下配置命令：
+./configure --enable-server --enable-agent --with-mysql --enable-ipv6 --with-net-snmp --with-libcurl --with-ssh2
+
+如果仅安装server，并支持将数据放入mysql数据中，可使用类似如下配置命令：
+./configure --enable-server --with-mysql --with-net-snmp --with-libcurl
+
+如果仅安装proxy，并支持将数据放入mysql数据中，可使用类似如下配置命令：
+./configure --prefix=/usr --enable-proxy --with-net-snmp --with-mysql --with-ssh2
+
+如果仅安装agent，可使用类似如下配置命令：
+./configure --enable-agent
+
+
+而后编译安装zabbix即可：
+# make
+# make install
+
+
+
+
+配置zabbix：
+
+server的配置文件为zabbix_server.conf，至少应该为其配置数据库等相关的信息；
+
+agent的配置文件为zaabix_agentd.conf，至少应该为其指定server的IP地址；
+
+proxy的配置文件为zabbix_proxy.conf，至少应该为其指定proxy的主机名和server的IP，以及数据库等相关的配置信息；
+
+
+
+
+启动zabbix:
+
+server:  zabbix_server
+
+agent: zabbix_agentd
+
+proxy: zabbix_proxy
+
+
+
+
+
+
+安装frontend: 
+
+# cp -a  frontend/php/  /var/www/html/zabbix
+
+启动lamp或lnmp后，通过浏览器访问http://<server_ip_or_name>/zabbix即可进行安装。
+
+
+
+
+
+
+如果使用rpm安装，zabbix关于mysql的数据库脚本文件路径为：
+# cd /usr/share/doc/zabbix-server-mysql-2.0.6/create/
+
+
+zabbix: 
+	数据采集-->数据存储-->数据展示和分析-->报警
+
+	数据采集：
+		SNMP
+		agent
+		ICMP/SSH/IPMI
+
+	数据存储：
+		cacti: rrd
+		nagios: , mysql
+		zabbix: mysql/pgsql/oracle
+
+	数据展示（Web）：
+		java
+		php
+		移动app
+
+	报警：
+		mail(smtp)
+		Chat Message
+		SMS
+
+
+zabbix:
+	zabbix agent
+	agent(active)
+	SNMP
+	SSH
+
+zabbix: 
+	用RDBMS保存；
+
+数据展示：
+	php, web gui
+
+报警：
+	报警升级
+
+如何确定zabbix的监控对象：
+	手动添加
+	自动发现
+
+	hosts, host group
+	item, application
+		item: key
+	graph, screen
+	trigger, event (discovery)
+	action (notification, operation, condition)
+
+
+
+zabbix仅运行在触发器上定义依赖关系；
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+模板是一系列配置的集合，它可以方便地快速部署在某监控对象上，并支持重复应用。模板可包含多种类型的条目：
+	items
+	triggers
+	graphs
+	applications
+	screens (since Zabbix 2.0)
+	low-level discovery rules (since Zabbix 2.0)
+
+
+将模板应用至某主机上时，其定义的所有条目都会自动添加。因此，模板通常用于为某监控的服务或应用程序整合一组条目并将之分别应用于对应的运行了相应服务的主机上。此外，模板的另一个好处在于，必要时，修改了模板，被应用的主机都会相应的作出修改。
+
+
+
+
+
+
+UserParameter：
+
+UserParameter=<key>,<command>
+
+
+
+剩余的内容：
+	discovery
+	web monitoring
+	jmx
+	分布式监控
+
+
+
+
+
+
+
+
+Delta (speed per second)：保存为(value-prev_value)/(time-prev_time的计算结果，即当前值减去前一次获取的数据值，除以当前时间戳减去前一次值获取时的时间戳得到的结果；如果当前值小于前一次的值，其将会被丢弃；
+Delta (simple change)：保存为 (value-prev_value)的计算结果；
+
+
+
+用户自定义参数：
+
+
+/etc/zabbix
+	zabbix_agentd.conf, zabbix_agentd.d/*.conf
+
+
+
+
+
+
+
+
+
+
+
+nginx status 开启方法：
+server {
+	...
+	location /status {
+		stub_status on;
+		access_log off;
+		allow 123.123.123.123; # 允许访问的 IP
+		allow 127.0.0.1;
+		deny all;
+	}
+}
+
+状态页面各项数据的意义：
+active connections – 当前 Nginx 正处理的活动连接数。
+serveraccepts handled requests — 总共处理了 233851 个连接 , 成功创建 233851 次握手 (证明中间没有失败的 ), 总共处理了 687942 个请求 ( 平均每次握手处理了 2.94 个数据请求 )。
+reading — nginx 读取到客户端的 Header 信息数。
+writing — nginx 返回给客户端的 Header 信息数。
+waiting — 开启 keep-alive 的情况下，这个值等于 active – (reading + writing)， 意思就是 Nginx 已经处理完正在等候下一次请求指令的驻留连接。
+
+
+
+
+
+/usr/lib/zabbix/externalscripts
+/etc/zabbix/externalscripts
+
+
+
+自动发现
+web监控
+分布式环境中使用zabbix
+
+
+
+
+
+
+UserParameter=Nginx.active[*], /usr/bin/curl -s "http://$1:$2/status" | awk '/^Active/ {print $NF}'
+UserParameter=Nginx.reading[*], /usr/bin/curl -s "http://$1:$2/status" | grep 'Reading' | cut -d" " -f2
+UserParameter=Nginx.writing[*], /usr/bin/curl -s "http://$1:$2/status" | grep 'Writing' | cut -d" " -f4
+UserParameter=Nginx.waiting[*], /usr/bin/curl -s "http://$1:$2/status" | grep 'Waiting' | cut -d" " -f6
+UserParameter=Nginx.accepted[*], /usr/bin/curl -s "http://$1:$2/status" | awk '/^[ \t]+[0-9]+[ \t]+[0-9]+[ \t]+[0-9]+/ {print $$1}'
+UserParameter=Nginx.handled[*], /usr/bin/curl -s "http://$1:$2/status" | awk '/^[ \t]+[0-9]+[ \t]+[0-9]+[ \t]+[0-9]+/ {print $$2}'
+UserParameter=Nginx.requests[*], /usr/bin/curl -s "http://$1:$2/status" | awk '/^[ \t]+[0-9]+[ \t]+[0-9]+[ \t]+[0-9]+/ {print $$3}'
+
+
+
+
+
+
+
+
+UserParameter=nginx.access_countaccess, /usr/lib/zabbix/externalscripts/logcheck_nginx.accesslog totalaccess
+UserParameter=nginx.access_count200, /usr/lib/zabbix/externalscripts/logcheck_nginx.accesslog 200access
+UserParameter=nginx.access_count202, /usr/lib/zabbix/externalscripts/logcheck_nginx.accesslog 202access
+UserParameter=nginx.access_count4xx, /usr/lib/zabbix/externalscripts/logcheck_nginx.accesslog 4xxaccess
+UserParameter=nginx.access_count3xx, /usr/lib/zabbix/externalscripts/logcheck_nginx.accesslog 3xxaccess
+UserParameter=nginx.access_count5xx, /usr/lib/zabbix/externalscripts/logcheck_nginx.accesslog 5xxaccess
+
+
+
+
+
+
+
+
+
+
+
+UserParameter=varnish.stat[*], /usr/lib/zabbix/externalscripts/varnishstatus varnish_stat $1
+UserParameter=varnish.count[*], /usr/lib/zabbix/externalscripts/varnishstatus varnish_count $1
+UserParameter=varnish.hitrate, /usr/lib/zabbix/externalscripts/varnishstatus varnish_hitrate
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# This is a config file for Zabbix Agent (Unix)
+# To get more information about Zabbix, visit http://www.zabbix.com
+
+############ GENERAL PARAMETERS #################
+
+### Option: PidFile
+# Name of PID file.
+#
+# Mandatory: no
+# Default:
+PidFile=/var/log/zabbix/zabbix_agentd.pid
+
+### Option: LogFile
+# Name of log file.
+# If not set, syslog is used.
+#
+# Mandatory: no
+# Default:
+# LogFile=
+
+LogFile=/var/log/zabbix/zabbix_agentd.log
+
+### Option: LogFileSize
+# Maximum size of log file in MB.
+# 0 - disable automatic log rotation.
+#
+# Mandatory: no
+# Range: 0-1024
+# Default:
+# LogFileSize=1
+LogFileSize=20
+
+### Option: DebugLevel
+# Specifies debug level
+# 0 - no debug
+# 1 - critical information
+# 2 - error information
+# 3 - warnings
+# 4 - for debugging (produces lots of information)
+#
+# Mandatory: no
+# Range: 0-4
+# Default:
+# DebugLevel=3
+
+
+### Option: SourceIP
+# Source IP address for outgoing connections.
+#
+# Mandatory: no
+# Default:
+# SourceIP=
+
+### Option: EnableRemoteCommands
+# Whether remote commands from Zabbix server are allowed.
+# 0 - not allowed
+# 1 - allowed
+#
+# Mandatory: no
+# Default:
+# EnableRemoteCommands=0
+
+### Option: LogRemoteCommands
+# Enable logging of executed shell commands as warnings.
+# 0 - disabled
+# 1 - enabled
+#
+# Mandatory: no
+# Default:
+# LogRemoteCommands=0
+
+##### Passive checks related
+
+### Option: Server
+# List of comma delimited IP addresses (or hostnames) of Zabbix servers.
+# Incoming connections will be accepted only from the hosts listed here.
+# No spaces allowed.
+# If IPv6 support is enabled then '127.0.0.1', '::127.0.0.1', '::ffff:127.0.0.1' are treated equally.
+#
+# Mandatory: no
+# Default:
+# Server=
+
+Server=172.16.10.15,127.0.0.1
+
+### Option: ListenPort
+# Agent will listen on this port for connections from the server.
+#
+# Mandatory: no
+# Range: 1024-32767
+# Default:
+# ListenPort=10050
+
+### Option: ListenIP
+# List of comma delimited IP addresses that the agent should listen on.
+# First IP address is sent to Zabbix server if connecting to it to retrieve list of active checks.
+#
+# Mandatory: no
+# Default:
+# ListenIP=0.0.0.0
+
+### Option: StartAgents
+# Number of pre-forked instances of zabbix_agentd that process passive checks.
+# If set to 0, disables passive checks and the agent will not listen on any TCP port.
+#
+# Mandatory: no
+# Range: 0-100
+# Default:
+# StartAgents=3
+StartAgents=2
+
+##### Active checks related
+
+### Option: ServerActive
+# List of comma delimited IP:port (or hostname:port) pairs of Zabbix servers for active checks.
+# If port is not specified, default port is used.
+# IPv6 addresses must be enclosed in square brackets if port for that host is specified.
+# If port is not specified, square brackets for IPv6 addresses are optional.
+# If this parameter is not specified, active checks are disabled.
+# Example: ServerActive=127.0.0.1:20051,zabbix.domain,[::1]:30051,::1,[12fc::1]
+#
+# Mandatory: no
+# Default:
+# ServerActive=
+
+ServerActive=172.16.10.15
+
+### Option: Hostname
+# Unique, case sensitive hostname.
+# Required for active checks and must match hostname as configured on the server.
+# Value is acquired from HostnameItem if undefined.
+#
+# Mandatory: no
+# Default:
+# Hostname=
+
+# Hostname=Zabbix server
+
+### Option: HostnameItem
+# Item used for generating Hostname if it is undefined.
+# Ignored if Hostname is defined.
+#
+# Mandatory: no
+# Default:
+HostnameItem=system.hostname
+
+### Option: RefreshActiveChecks
+# How often list of active checks is refreshed, in seconds.
+#
+# Mandatory: no
+# Range: 60-3600
+# Default:
+# RefreshActiveChecks=120
+RefreshActiveChecks=60
+
+### Option: BufferSend
+# Do not keep data longer than N seconds in buffer.
+#
+# Mandatory: no
+# Range: 1-3600
+# Default:
+# BufferSend=5
+BufferSend=10
+
+### Option: BufferSize
+# Maximum number of values in a memory buffer. The agent will send
+# all collected data to Zabbix Server or Proxy if the buffer is full.
+#
+# Mandatory: no
+# Range: 2-65535
+# Default:
+# BufferSize=100
+BufferSize=1000
+
+### Option: MaxLinesPerSecond
+# Maximum number of new lines the agent will send per second to Zabbix Server
+# or Proxy processing 'log' and 'logrt' active checks.
+# The provided value will be overridden by the parameter 'maxlines',
+# provided in 'log' or 'logrt' item keys.
+#
+# Mandatory: no
+# Range: 1-1000
+# Default:
+# MaxLinesPerSecond=100
+MaxLinesPerSecond=200
+
+### Option: AllowRoot
+# Allow the agent to run as 'root'. If disabled and the agent is started by 'root', the agent
+#       will try to switch to user 'zabbix' instead. Has no effect if started under a regular user.
+# 0 - do not allow
+# 1 - allow
+#
+# Mandatory: no
+# Default:
+# AllowRoot=0
+
+############ ADVANCED PARAMETERS #################
+
+### Option: Alias
+# Sets an alias for parameter. It can be useful to substitute long and complex parameter name with a smaller and simpler one.
+#
+# Mandatory: no
+# Range:
+# Default:
+
+### Option: Timeout
+# Spend no more than Timeout seconds on processing
+#
+# Mandatory: no
+# Range: 1-30
+# Default:
+Timeout=20
+
+### Option: Include
+# You may include individual files or all files in a directory in the configuration file.
+# Installing Zabbix will create include directory in /usr/local/etc, unless modified during the compile time.
+#
+# Mandatory: no
+# Default:
+# Include=
+
+# Include=/usr/local/etc/zabbix_agentd.userparams.conf
+Include=/usr/local/zabbix/etc/zabbix_agentd.conf.d/
+
+####### USER-DEFINED MONITORED PARAMETERS #######
+
+### Option: UnsafeUserParameters
+# Allow all characters to be passed in arguments to user-defined parameters.
+# 0 - do not allow
+# 1 - allow
+#
+# Mandatory: no
+# Range: 0-1
+# Default:
+# UnsafeUserParameters=0
+
+### Option: UserParameter
+# User-defined parameter to monitor. There can be several user-defined parameters.
+# Format: UserParameter=<key>,<shell command>
+# See 'zabbix_agentd' directory for examples.
+#
+# Mandatory: no
+# Default:
+# UserParameter=
+
+
+
+
+
+
+
+
+
+

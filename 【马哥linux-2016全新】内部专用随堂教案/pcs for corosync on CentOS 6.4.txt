@@ -1,0 +1,501 @@
+
+
+前提：
+1）本配置共有两个测试节点，分别node1.magedu.com和node2.magedu.com，相的IP地址分别为172.16.100.15和172.16.100.16；
+2）集群服务为apache的httpd服务；
+3）提供web服务的地址为172.16.100.11，即vip；
+4）系统为CentOS 6.4 64bits
+
+1、准备工作
+
+为了配置一台Linux主机成为HA的节点，通常需要做出如下的准备工作：
+
+1）所有节点的主机名称和对应的IP地址解析服务可以正常工作，且每个节点的主机名称需要跟"uname -n“命令的结果保持一致；因此，需要保证两个节点上的/etc/hosts文件均为下面的内容：
+172.16.100.16   node1.magedu.com node1
+172.16.100.17   node2.magedu.com node2
+
+为了使得重新启动系统后仍能保持如上的主机名称，还分别需要在各节点执行类似如下的命令：
+
+Node1:
+# sed -i 's@\(HOSTNAME=\).*@\1node1.magedu.com@g'  /etc/sysconfig/network
+# hostname node1.magedu.com
+
+Node2：
+# sed -i 's@\(HOSTNAME=\).*@\1node2.magedu.com@g' /etc/sysconfig/network
+# hostname node2.magedu.com
+
+2）设定两个节点可以基于密钥进行ssh通信，这可以通过类似如下的命令实现：
+Node1:
+# ssh-keygen -t rsa
+# ssh-copy-id -i ~/.ssh/id_rsa.pub root@node2
+
+Node2:
+# ssh-keygen -t rsa
+# ssh-copy-id -i ~/.ssh/id_rsa.pub root@node1
+
+2、安装配置corosync，（以下命令在node1.magedu.com上执行）
+
+# yum -y install corosync pacemaker pcs
+
+# cd /etc/corosync
+# cp corosync.conf.example corosync.conf
+
+接着编辑corosync.conf，添加如下内容：
+service {
+  ver:  0
+  name: pacemaker
+  # use_mgmtd: yes
+}
+
+aisexec {
+  user: root
+  group:  root
+}
+
+并设定此配置文件中 bindnetaddr后面的IP地址为你的网卡所在网络的网络地址，我们这里的两个节点在172.16.0.0网络，因此这里将其设定为172.16.0.0；如下
+bindnetaddr: 172.16.0.0
+
+生成节点间通信时用到的认证密钥文件：
+# corosync-keygen
+
+将corosync和authkey复制至node2:
+# scp -p corosync authkey  node2:/etc/corosync/
+
+分别为两个节点创建corosync生成的日志所在的目录：
+# mkdir /var/log/cluster
+# ssh node2  'mkdir /var/log/cluster'
+
+3、启动corosync（以下命令在node1上执行）：
+
+# /etc/init.d/corosync start
+
+查看corosync引擎是否正常启动：
+# grep -e "Corosync Cluster Engine" -e "configuration file" /var/log/cluster/corosync.log 
+Sep 15 11:37:39 corosync [MAIN  ] Corosync Cluster Engine ('1.4.1'): started and ready to provide service.
+Sep 15 11:37:39 corosync [MAIN  ] Successfully read main configuration file '/etc/corosync/corosync.conf'.
+
+查看初始化成员节点通知是否正常发出：
+# grep  TOTEM  /var/log/cluster/corosync.log
+Sep 15 11:37:39 corosync [TOTEM ] Initializing transport (UDP/IP Multicast).
+Sep 15 11:37:39 corosync [TOTEM ] Initializing transmit/receive security: libtomcrypt SOBER128/SHA1HMAC (mode 0).
+Sep 15 11:37:39 corosync [TOTEM ] The network interface [172.16.100.15] is now up.
+Sep 15 11:37:39 corosync [TOTEM ] A processor joined or left the membership and a new membership was formed.
+Sep 15 11:37:39 corosync [TOTEM ] A processor joined or left the membership and a new membership was formed.
+
+检查启动过程中是否有错误产生。下面的错误信息表示packmaker不久之后将不再作为corosync的插件运行，因此，建议使用cman作为集群基础架构服务；此处可安全忽略。
+# grep ERROR: /var/log/cluster/corosync.log | grep -v unpack_resources
+Sep 15 11:37:39 corosync [pcmk  ] ERROR: process_ais_conf: You have configured a cluster using the Pacemaker plugin for Corosync. The plugin is not supported in this environment and will be removed very soon.
+Sep 15 11:37:39 corosync [pcmk  ] ERROR: process_ais_conf:  Please see Chapter 8 of 'Clusters from Scratch' (http://www.clusterlabs.org/doc) for details on using Pacemaker with CMAN
+Sep 15 11:37:40 corosync [pcmk  ] ERROR: pcmk_wait_dispatch: Child process mgmtd exited (pid=2375, rc=100)
+
+查看pacemaker是否正常启动：
+# grep pcmk_startup /var/log/cluster/corosync.log 
+Sep 15 11:37:39 corosync [pcmk  ] info: pcmk_startup: CRM: Initialized
+Sep 15 11:37:39 corosync [pcmk  ] Logging: Initialized pcmk_startup
+Sep 15 11:37:39 corosync [pcmk  ] info: pcmk_startup: Maximum core file size is: 18446744073709551615
+Sep 15 11:37:39 corosync [pcmk  ] info: pcmk_startup: Service: 9
+Sep 15 11:37:39 corosync [pcmk  ] info: pcmk_startup: Local hostname: node1.magedu.com
+
+如果上面命令执行均没有问题，接着可以执行如下命令启动node2上的corosync
+# ssh node2 -- /etc/init.d/corosync start
+
+注意：启动node2需要在node1上使用如上命令进行，不要在node2节点上直接启动。下面是node1上的相关日志。
+# tail /var/log/cluster/corosync.log 
+Sep 15 12:10:00 [2688] node1.magedu.com       crmd:     info: do_te_control:  Transitioner is now inactive
+Sep 15 12:10:00 [2688] node1.magedu.com       crmd:     info: update_dc:  Set DC to node2.magedu.com (3.0.7)
+Sep 15 12:10:00 [2683] node1.magedu.com        cib:     info: cib_process_replace:  Digest matched on replace from node2.magedu.com: a221b8ae3386d35b263633d8b1fe213f
+Sep 15 12:10:00 [2683] node1.magedu.com        cib:     info: cib_process_replace:  Replaced 0.8.7 with 0.8.7 from node2.magedu.com
+Sep 15 12:10:00 [2688] node1.magedu.com       crmd:     info: erase_status_tag:   Deleting xpath: //node_state[@uname='node1.magedu.com']/transient_attributes
+Sep 15 12:10:00 [2688] node1.magedu.com       crmd:     info: update_attrd:   Connecting to attrd... 5 retries remaining
+Sep 15 12:10:00 [2688] node1.magedu.com       crmd:   notice: do_state_transition:  State transition S_PENDING -> S_NOT_DC [ input=I_NOT_DC cause=C_HA_MESSAGE origin=do_cl_join_finalize_respond ]
+Sep 15 12:10:00 [2686] node1.magedu.com      attrd:   notice: attrd_local_callback:   Sending full refresh (origin=crmd)
+Sep 15 12:10:01 [2686] node1.magedu.com      attrd:   notice: attrd_trigger_update:   Sending flush op to all hosts for: probe_complete (true)
+Sep 15 12:10:01 [2686] node1.magedu.com      attrd:   notice: attrd_perform_update:   Sent update 5: probe_complete=true
+
+查看集群节点的启动状态：
+# pcs status
+Last updated: Sun Sep 15 15:45:38 2013
+Last change: Sun Sep 15 15:43:36 2013 via cibadmin on node2.magedu.com
+Stack: classic openais (with plugin)
+Current DC: node1.magedu.com - partition with quorum
+Version: 1.1.8-7.el6-394e906
+2 Nodes configured, 2 expected votes
+0 Resources configured.
+
+
+Online: [ node1.magedu.com node2.magedu.com ]
+
+Full list of resources:
+
+从上面的信息可以看出两个节点都已经正常启动，并且集群已经处于正常工作状态。
+
+执行ps auxf命令可以查看corosync启动的各相关进程。
+root      2677  0.5  0.9 618244  4680 ?        Ssl  12:09   0:01 corosync
+495       2683  0.3  1.5  87456  7552 ?        S    12:09   0:00  \_ /usr/libexec/pacemaker/cib
+root      2684  0.0  0.6  81432  3244 ?        S    12:09   0:00  \_ /usr/libexec/pacemaker/stonithd
+root      2685  0.0  0.6  73088  3120 ?        S    12:09   0:00  \_ /usr/libexec/pacemaker/lrmd
+495       2686  0.0  0.6  85736  3228 ?        S    12:09   0:00  \_ /usr/libexec/pacemaker/attrd
+495       2687  0.0  0.5  80876  2764 ?        S    12:09   0:00  \_ /usr/libexec/pacemaker/pengine
+495       2688  0.0  0.8 102724  4084 ?        S    12:09   0:00  \_ /usr/libexec/pacemaker/crmd
+
+
+4、配置集群的工作属性，禁用stonith
+
+corosync默认启用了stonith，而当前集群并没有相应的stonith设备，因此此默认配置目前尚不可用，这可以通过如下命令验正：
+
+# crm_verify -L -V
+   error: unpack_resources:   Resource start-up disabled since no STONITH resources have been defined
+   error: unpack_resources:   Either configure some or disable STONITH with the stonith-enabled option
+   error: unpack_resources:   NOTE: Clusters with shared data need STONITH to ensure data integrity
+Errors found during check: config not valid
+  -V may provide more details
+
+我们里可以通过如下命令先禁用stonith：
+# pcs property set stonith-enabled=false
+
+使用如下命令查看当前的配置信息：
+# pcs cluster cib | grep stonith
+        <nvpair id="cib-bootstrap-options-stonith-enabled" name="stonith-enabled" value="false"/>
+
+或执行如下命令查看：
+
+# pcs config
+Corosync Nodes:
+ 
+Pacemaker Nodes:
+ node1.magedu.com node2.magedu.com 
+
+Resources: 
+
+Location Constraints:
+Ordering Constraints:
+Colocation Constraints:
+
+Cluster Properties:
+ dc-version: 1.1.8-7.el6-394e906
+ cluster-infrastructure: classic openais (with plugin)
+ expected-quorum-votes: 2
+ last-lrm-refresh: 1373281380
+ stonith-enabled: false
+  
+从中可以看出stonith已经被禁用。
+
+上面的crm，crm_verify命令是1.0后的版本的pacemaker提供的基于命令行的集群管理工具；可以在集群中的任何一个节点上执行。
+
+5、为集群添加集群资源
+
+corosync支持heartbeat，LSB和ocf等类型的资源代理，目前较为常用的类型为LSB和OCF两类，stonith类专为配置stonith设备而用；
+
+可以通过如下命令查看当前集群系统所支持的类型：
+
+# pcs resource standards
+ocf
+lsb
+service
+stonith
+
+查看资源代理的provider：
+# pcs resource providers
+heartbeat
+pacemaker
+redhat
+
+如果想要查看某种类别下的所用资源代理的列表，可以使用类似如下命令实现：
+# pcs resource agents [standard[:provider]]
+例如：
+# pcs resource agents lsb
+# pcs resource agents ocf:heartbeat
+# pcs resource agents ocf:pacemaker
+# pcs resource agents stonith
+
+如果要查看某资源代理的可配置属性等信息，则使用如下命令：
+# pcs resource describe <class:provider:type|type>
+例如：
+# pcs resource describe ocf:heartbeat:IPaddr
+Resource options for: IPaddr
+  ip (required): The IPv4 address to be configured in dotted quad notation, for example"192.168.1.1".
+  nic: The base network interface on which the IP address will be broughtonline.If left empty, the script will try and determine this from therouting table.Do
+       NOT specify an alias interface in the form eth0:1 or anything here;rather, specify the base interface only.Prerequisite:There must be at least one
+       static IP address, which is not managed bythe cluster, assigned to the network interface.If you can not assign any static IP address on the
+       interface,modify this kernel parameter:sysctl -w net.ipv4.conf.all.promote_secondaries=1(or per device)
+  cidr_netmask: The netmask for the interface in CIDR format. (ie, 24), or indotted quad notation 255.255.255.0).If unspecified, the script will also try to
+                determine this from therouting table.
+  broadcast: Broadcast address associated with the IP. If left empty, the script willdetermine this from the netmask.
+  iflabel: You can specify an additional label for your IP address here.
+  lvs_support: Enable support for LVS Direct Routing configurations. In case a IPaddress is stopped, only move it to the loopback device to allow thelocal node
+               to continue to service requests, but no longer advertise iton the network.
+  local_stop_script: Script called when the IP is released
+  local_start_script: Script called when the IP is added
+  ARP_INTERVAL_MS: milliseconds between ARPs
+  ARP_REPEAT: How many gratuitous ARPs to send out when bringing up a new address
+  ARP_BACKGROUND: run in background (no longer any reason to do this)
+  ARP_NETMASK: netmask for ARP - in nonstandard hexadecimal format.
+
+6、接下来要创建的web集群创建一个IP地址资源，以在通过集群提供web服务时使用；这可以通过如下方式实现：
+
+语法：
+# pcs resource create <resource id> <class:provider:type|type> [resource options]
+
+ [resource options]
+    [params attr_list]
+      [operations id_spec]
+        [op op_type [<attribute>=<value>...] ...]
+
+op_type :: start | stop | monitor
+
+应用示例：为集群配置一个IP地址，用于实现提供高可用的web服务。
+# pcs resource create WebIP ocf:heartbeat:IPaddr ip=172.16.100.11 \
+               cidr_netmask=16 op monitor interval=30s
+
+通过如下的命令执行结果可以看出此资源已经在node1.magedu.com上启动：
+# pcs status
+Last updated: Sun Sep 15 16:00:33 2013
+Last change: Sun Sep 15 16:00:29 2013 via cibadmin on node1.magedu.com
+Stack: classic openais (with plugin)
+Current DC: node1.magedu.com - partition with quorum
+Version: 1.1.8-7.el6-394e906
+2 Nodes configured, 2 expected votes
+1 Resources configured.
+
+
+Online: [ node1.magedu.com node2.magedu.com ]
+
+Full list of resources:
+
+ WebIP  (ocf::heartbeat:IPaddr):  Started node1.magedu.com
+
+当然，也可以在node1上执行ifconfig命令看到此地址已经在eth0的别名上生效：
+# ifconfig 
+eth0:0    Link encap:Ethernet  HWaddr 00:0C:29:62:DE:4C  
+          inet addr:172.16.100.11  Bcast:172.16.255.255  Mask:255.255.0.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          
+而后我们到node2上通过如下命令停止node1上的corosync服务：
+# ssh node1 -- /etc/init.d/corosync stop
+
+查看集群工作状态：
+# pcs status
+Last updated: Mon Jul  8 19:59:25 2013
+Last change: Sun Sep 15 16:00:29 2013 via cibadmin on node1.magedu.com
+Stack: classic openais (with plugin)
+Current DC: node2.magedu.com - partition WITHOUT quorum
+Version: 1.1.8-7.el6-394e906
+2 Nodes configured, 2 expected votes
+1 Resources configured.
+
+
+Online: [ node2.magedu.com ]
+OFFLINE: [ node1.magedu.com ]
+
+Full list of resources:
+
+上面的信息显示node1.magedu.com已经离线，但资源WebIP却没能在node2.magedu.com上启动。这是因为此时的集群状态为"WITHOUT quorum"，即已经失去了quorum，此时集群服务本身已经不满足正常运行的条件，这对于只有两节点的集群来讲是不合理的。因此，我们可以通过如下的命令来修改忽略quorum不能满足的集群状态检查：
+
+# pcs property set no-quorum-policy="ignore"
+
+片刻之后，集群就会在目前仍在运行中的节点node2上启动此资源了，如下所示：
+# pcs status
+Last updated: Mon Jul  8 20:12:18 2013
+Last change: Mon Jul  8 20:11:20 2013 via cibadmin on node2.magedu.com
+Stack: classic openais (with plugin)
+Current DC: node2.magedu.com - partition WITHOUT quorum
+Version: 1.1.8-7.el6-394e906
+2 Nodes configured, 2 expected votes
+1 Resources configured.
+
+
+Online: [ node2.magedu.com ]
+OFFLINE: [ node1.magedu.com ]
+
+Full list of resources:
+
+ WebIP  (ocf::heartbeat:IPaddr):  Started node2.magedu.com
+ 
+好了，验正完成后，我们正常启动node1.magedu.com:
+# ssh node1 -- /etc/init.d/corosync start
+
+正常启动node1.magedu.com后，集群资源WebIP很可能会重新从node2.magedu.com转移回node1.magedu.com。资源的这种在节点间每一次的来回流动都会造成那段时间内其无法正常被访问，所以，我们有时候需要在资源因为节点故障转移到其它节点后，即便原来的节点恢复正常也禁止资源再次流转回来。这可以通过定义资源的黏性(stickiness)来实现。在创建资源时或在创建资源后，都可以指定指定资源黏性。
+
+资源黏性值范围及其作用：
+0：这是默认选项。资源放置在系统中的最适合位置。这意味着当负载能力“较好”或较差的节点变得可用时才转移资源。此选项的作用基本等同于自动故障回复，只是资源可能会转移到非之前活动的节点上；
+大于0：资源更愿意留在当前位置，但是如果有更合适的节点可用时会移动。值越高表示资源越愿意留在当前位置；
+小于0：资源更愿意移离当前位置。绝对值越高表示资源越愿意离开当前位置；
+INFINITY：如果不是因节点不适合运行资源（节点关机、节点待机、达到migration-threshold 或配置更改）而强制资源转移，资源总是留在当前位置。此选项的作用几乎等同于完全禁用自动故障回复；
+-INFINITY：资源总是移离当前位置；
+
+我们这里可以通过以下方式为资源指定默认黏性值：
+# pcs resource rsc defaults resource-stickiness=100
+
+7、结合上面已经配置好的IP地址资源，将此集群配置成为一个active/passive模型的web（httpd）服务集群
+
+为了将此集群启用为web（httpd）服务器集群，我们得先在各节点上安装httpd，并配置其能在本地各自提供一个测试页面。
+
+Node1:
+# yum -y install httpd
+# echo "<h1>Node1.magedu.com</h1>" > /var/www/html/index.html
+
+Node2:
+# yum -y install httpd
+# echo "<h1>Node2.magedu.com</h1>" > /var/www/html/index.html
+
+而后在各节点手动启动httpd服务，并确认其可以正常提供服务。接着使用下面的命令停止httpd服务，并确保其不会自动启动（在两个节点各执行一遍）：
+# /etc/init.d/httpd stop
+# chkconfig httpd off
+
+
+接下来我们将此httpd服务添加为集群资源。将httpd添加为集群资源有两处资源代理可用：lsb和ocf:heartbeat，为了简单起见，我们这里使用lsb类型：
+
+# pcs resource create WebServer lsb:httpd
+
+查看配置文件中生成的定义：
+# pcs config
+Corosync Nodes:
+ 
+Pacemaker Nodes:
+ node1.magedu.com node2.magedu.com 
+
+Resources: 
+ Resource: WebIP (provider=heartbeat type=IPaddr class=ocf)
+  Attributes: ip=172.16.100.11 cidr_netmask=16 
+  Operations: monitor interval=30s
+ Resource: WebServer (type=httpd class=lsb)
+
+Location Constraints:
+Ordering Constraints:
+Colocation Constraints:
+
+Cluster Properties:
+ dc-version: 1.1.8-7.el6-394e906
+ cluster-infrastructure: classic openais (with plugin)
+ expected-quorum-votes: 2
+ last-lrm-refresh: 1373281380
+ stonith-enabled: false
+ no-quorum-policy: ignore
+  
+查看资源的启用状态：
+# pcs status
+Last updated: Mon Jul  8 20:19:53 2013
+Last change: Mon Jul  8 20:18:33 2013 via cibadmin on node2.magedu.com
+Stack: classic openais (with plugin)
+Current DC: node2.magedu.com - partition with quorum
+Version: 1.1.8-7.el6-394e906
+2 Nodes configured, 2 expected votes
+2 Resources configured.
+
+
+Online: [ node1.magedu.com node2.magedu.com ]
+
+Full list of resources:
+
+ WebIP  (ocf::heartbeat:IPaddr):  Started node2.magedu.com
+ WebServer  (lsb:httpd):  Started node1.magedu.com
+ 
+从上面的信息中可以看出WebIP和WebServer有可能会分别运行于两个节点上，这对于通过此IP提供Web服务的应用来说是不成立的，即此两者资源必须同时运行在某节点上。
+
+7.1 资源约束
+
+通过前面的描述可知，即便集群拥有所有必需资源，但它可能还无法进行正确处理。资源约束则用以指定在哪些群集节点上运行资源，以何种顺序装载资源，以及特定资源依赖于哪些其它资源。pacemaker共给我们提供了三种资源约束方法：
+1）Resource Location（资源位置）：定义资源可以、不可以或尽可能在哪些节点上运行；
+2）Resource Collocation（资源排列）：排列约束用以定义集群资源可以或不可以在某个节点上同时运行；
+3）Resource Order（资源顺序）：顺序约束定义集群资源在节点上启动的顺序；
+
+定义约束时，还需要指定分数。各种分数是集群工作方式的重要组成部分。其实，从迁移资源到决定在已降级集群中停止哪些资源的整个过程是通过以某种方式修改分数来实现的。分数按每个资源来计算，资源分数为负的任何节点都无法运行该资源。在计算出资源分数后，集群选择分数最高的节点。INFINITY（无穷大）目前定义为 1,000,000。加减无穷大遵循以下3个基本规则：
+1）任何值 + 无穷大 = 无穷大
+2）任何值 - 无穷大 = -无穷大
+3）无穷大 - 无穷大 = -无穷大
+
+定义资源约束时，也可以指定每个约束的分数。分数表示指派给此资源约束的值。分数较高的约束先应用，分数较低的约束后应用。通过使用不同的分数为既定资源创建更多位置约束，可以指定资源要故障转移至的目标节点的顺序。
+
+7.1.1 排列约束
+
+使用pcs命令定义资源排列约束的语法：
+# pcs constraint colocation add <source resource> <target resource> [score] [options]
+
+因此，对于前述的WebIP和WebServer可能会运行于不同节点的问题，可以通过以下命令来解决：
+# pcs constraint colocation add WebServer WebIP INFINITY
+
+如下的状态信息显示，两个资源已然运行于同一个节点。
+# pcs status
+Last updated: Mon Jul  8 20:23:37 2013
+Last change: Mon Jul  8 20:23:27 2013 via cibadmin on node2.magedu.com
+Stack: classic openais (with plugin)
+Current DC: node2.magedu.com - partition with quorum
+Version: 1.1.8-7.el6-394e906
+2 Nodes configured, 2 expected votes
+2 Resources configured.
+
+
+Online: [ node1.magedu.com node2.magedu.com ]
+
+Full list of resources:
+
+ WebIP  (ocf::heartbeat:IPaddr):  Started node2.magedu.com
+ WebServer  (lsb:httpd):  Started node2.magedu.com
+
+7.1.2 顺序约束
+
+通过pcs命令定义顺序约束的语法如下所示：
+# pcs constraint order [action] <first rsc> then [action] <then rsc> [options]
+
+因此，要确保WebServer在某节点启动之前得先启动WebIP可以使用如下命令实现：
+# pcs constraint order WebIP then WebServer
+
+查看定义的结果：
+# pcs constraint order
+Ordering Constraints:
+  start WebIP then start WebServer
+
+7.1.3 位置约束
+
+由于HA集群本身并不强制每个节点的性能相同或相近，所以，某些时候我们可能希望在正常时服务总能在某个性能较强的节点上运行，这可以通过位置约束来实现。通过pcs命令定义位置约束的语法略复杂些，如下所述。
+
+倾向运行于某节点：
+location <rsc> prefers <node[=score]>...
+
+倾向离开某节点：
+location <rsc> avoids <node[=score]>...
+
+通过约束分数来定义其倾向运行的节点：
+location add <id> <resource name> <node> <score>
+
+例如：如果期望WebServer倾向运行于node1.magedu.com的分数为500，则可以使用类似如下命令实现：
+# pcs constraint location add webserver_on_node1 WebServer node1.magedu.com 500
+
+最终的配置结果如下所示：
+# pcs config
+Corosync Nodes:
+ 
+Pacemaker Nodes:
+ node1.magedu.com node2.magedu.com 
+
+Resources: 
+ Resource: WebIP (provider=heartbeat type=IPaddr class=ocf)
+  Attributes: ip=172.16.100.11 cidr_netmask=16 
+  Operations: monitor interval=30s
+ Resource: WebServer (type=httpd class=lsb)
+
+Location Constraints:
+  Resource: WebServer
+    Enabled on: node1.magedu.com (score:500)
+Ordering Constraints:
+  start WebIP then start WebServer
+Colocation Constraints:
+  WebServer with WebIP
+
+Cluster Properties:
+ dc-version: 1.1.8-7.el6-394e906
+ cluster-infrastructure: classic openais (with plugin)
+ expected-quorum-votes: 2
+ last-lrm-refresh: 1373281380
+ stonith-enabled: false
+ no-quorum-policy: ignore
+
+
+
+
+补充知识：
+多播地址(multicast address)即组播地址，是一组主机的标示符，它已经加入到一个多播组中。在以太网中，多播地址是一个48位的标示符，命名了一组应该在这个网络中应用接收到一个分组的站点。在IPv4中，它历史上被叫做D类地址，一种类型的IP地址，它的范围从224.0.0.0到239.255.255.255，或，等同的，在224.0.0.0/4。在IPv6，多播地址都有前缀ff00::/8。
+
+多播是第一个字节的最低位为1的所有地址，例如01-12-0f-00-00-02。广播地址是全1的48位地址，也属于多播地址。但是广播又是多播中的特例，就像是正方形属于长方形，但是正方形有长方形没有的特点。
+
+

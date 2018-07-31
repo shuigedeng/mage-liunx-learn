@@ -1,0 +1,1070 @@
+
+
+Ruby 是一种面向对象、命令式、函数式、动态的通用编程语言。在20世纪90年代中期由日本人松本行弘设计并开发，遵守BSD许可证和Ruby License。它的灵感与特性来自于Perl、Smalltalk、Eiffel、Ada以及Lisp语言。
+
+Ruby的作者－－松本行弘于1993年2月24日开始编写Ruby，直至1995年12月才正式公开发布于fj（新闻组）。之所以称为Ruby是取法自Perl，因为Perl的发音与6月的诞生石pearl（珍珠）相同，Ruby选择以7月的诞生石ruby（红宝石）命名。
+
+Ruby的作者认为Ruby > (Smalltalk + Perl) / 2，表示Ruby是一个语法像Smalltalk一样完全面向对象、脚本运行、又有Perl强大的文字处理功能的编程语言。
+
+特色
+	完全面向对象：任何东西都是对象，没有基础类型
+	变量没有类型（动态类型）
+	任何东西都有值：不管是四则运算、逻辑表达式还是一个语句，都有回传值。
+	运算符重载
+	垃圾回收
+	强类型
+	变量无需声明
+	在Windows上，加载DLL
+
+perl 6
+ruby on rails: ror
+python (Django, Flask)
+java (jsp)
+
+
+
+
+
+下载puppet:
+
+https://yum.puppetlabs.com/el/
+
+
+
+
+
+
+1.1 puppet资源
+
+如果把OS的所有配置，如用户账号、特定的文件、文件所属的目录、运行的服务、程序包以及cron任务等，看作是许多独立原子单元的集合的话，这些所谓的“单元”就是“资源”，不过，这些资源在其大小、复杂程度以及生命周期的跨度上等多个维度上可能会各不相同。
+
+通常来说，类属于同一种资源的属性是相近的，如文件都有其属主和属组，而用户账号则由用户名、UID、GID等组成。但，即便是同一种资源，其在不同OS上的实现方式却又可能各不相同，例如，在windows上和Linux上启动和停止服务的方式相去甚远。
+
+因此，puppet从以下三个维度来对资源完成抽象。
+
+  相似的资源被抽象成同一种资源“类型”，如程序包资源、用户资源及服务资源等；
+  将资源属性或状态的描述与其实现方式剥离开来，如仅说明安装一个程序包而不用关心其具体是通过yum、pkgadd、ports或是其它方式实现；
+  仅描述资源的目标状态，也即期望其实现的结果，而不是其具体过程，如“确定nginx运行起来”而不是具体描述为“运行nginx命令将其启动起来”；
+
+这三个也被称作puppet的资源抽象层(RAL)。RAL由type(类型)和provider(提供者，即不同OS上的特定实现)组成。
+
+1.2 puppet资源解构
+
+在为puppet定义一个资源时，需要为其指定所属的类型和资源标题，并同时配置一系列的属性和对应的值。puppet通过其特有的语言来描述和管理资源，如下面所示的资源定义。
+
+    user { 'magedu':
+      ensure     => present,
+      uid        => '601',
+      gid        => '601',
+      shell      => '/bin/bash',
+      home       => '/home/magedu',
+      managehome => true,
+    }
+
+这种语法被称作“资源申报(resource declaration)”，它是puppet语言的核心组成部分。上述的定义中，仅描述了资源的目标状态而没有提到为达成目标所需要采取的任何步骤。而资源定义的核心也可以抽象为type、title、attribute和value四个部分。
+
+puppet有许多内置的资源类型，而通过安装插件还可以继续新增额外的类型。可以通过puppet官方的类型参考页面(http://docs.puppetlabs.com/references/latest/type.html)获取详细的信息。也可以使用“puppet describe”命令来获取puppet当前所支持的类型列表及每种类型的详细信息，下面给出了一个简要的使用说明。
+
+  puppet describe -l：例如puppet支持的所有资源类型及其描述信息；
+  puppet describe -s <TYPE>：列出指定资源的简要说明；
+  puppet describe <TYPE>：显示指定资源的详细说明；
+
+
+1.3 定义资源
+
+如前所述，资源是puppet用于模型化系统配置的基础单元，每个资源都都从某个角度描述了系统属性，如某程序包必须安装或某用户必须移除等。在puppet，用于完成此类功能的代码也即“资源申报”。
+
+    type {'title':
+      attribute => value,
+    }
+
+在定义时，资源类型必须使用小写字符；而资源名称仅是一个字符串，但要求在同一个类型中其必须惟一，这意味着，可以同时有名为nginx的“service”资源和“package”资源，但在“package”类型的资源中只能有一个名为“nginx”。
+
+
+尚未完成，参考：http://docs.puppetlabs.com/puppet/latest/reference/lang_resources.html
+
+
+1.4 资源的浏览及查找
+
+“puppet resource”命令可用于交互式查找及修改puppet资源。
+
+# puppet resource <TYPE> [<NAME>] [ATTRIBUTE=VALUE ...]
+
+
+
+
+
+
+
+Site manifest
+
+在puppet的C/S架构场景中，manifest的应用过程也与本地场景的方式有所不同。
+
+puppet agent通常运行为一个服务进程，其默认每隔半个小时向master发出一次连接请求；
+puppet agent并不直接访问任何manifest，而是向master请求一个预编译的catalog文件；
+puppet master会为发出请求的agent读取一个名为“site mainfest”的特殊manifest文件，并基于此编译一个catalog后发送给请求者；
+puppet agent在获取到catalog后应用于本地；
+
+因此，基于此种工作架构，仅在master端提供一个或少量几个manifest即可实现管理大量的节点，并能提供更加安全的工作过程。
+
+
+
+
+
+
+数据类型
+
+puppet语言支持多种数据类型以用于变量和属性的值，以及函数的参数。
+
+布尔型：true和false，不能加引号；if语句的测试条件和比较表达式都会返回布尔型值；另外，其它数据类型也可自动转换为布尔型，如空字符串为false等；
+undef：从未被声明的变量的值类型即为undef；也可手动为某变量赋予undef值，即直接使用不加引号的undef字符串；
+字符型：非结构化的文本字符串，可以使用引号，也可以不用；单引号中的变量不会替换，而双引号中的能够进行变量替换；字符型值也支持使用转义符；
+数值型：可为整数或浮点数，不过，puppet只有在数值上下文才把数值当数值型对待，其它情况下一律以字符型处理；
+数组：数组值为中括号“[]”中的以逗号分隔的项目列表，最后一个项目后面可以有逗号；数组中的元素可以为任意可用数据类型，包括hash或其它数组；数组索引为从0开始的整数，也可以使用负数索引；
+hash：即为外键值数据类型，键和值之间使用“=>”分隔，键值对儿定义在“{}”中，彼此间以逗号分隔；其键为字符型数据，而值可以为puppet支持的任意数据类型；访问hash类型的数据元素要使用“键”当作索引进行。
+正则表达式：属于puppet的非标准数据类型，不能赋值给变量，仅能用于有限的几个接受正则表达式的地方，即接受使用“=~”及“!~”匹配操作符的位置，通常包括case语句中的selector，以及节点名称匹配的位置；它们不能传递给函数或用于资源属性的定义；
+
+puppet中的正则表达式支持使用(?<ENABLED OPTION>:<SUBPATTERN>)和(?-<DISABLED OPTION>:<SUBPATTERN>)两个特殊的符号。例如下面的示例表示做正则表达式匹配时启用选项“i”(忽略字符大小写)，但不支持使用“m”(把.当作换行符)和“x”(忽略模式中的空白字符和注释)。
+
+  $packages = $operatingsystem ? {
+       /(?i-mx:ubuntu|debian)/        => 'apache2',
+       /(?i-mx:centos|fedora|redhat)/ => 'httpd',
+     }
+
+
+
+
+
+
+
+类
+
+Class是用于通用目标或目的的一组资源，因此，它是命名的代码块，在某位置创建之后可在puppet全局使用。类似于其它编程语言中的类的功能，puppet的类可以继承，也可以包含子类。定义类的语法如下所示。
+
+  class my_class {
+    ... puppet code ...
+  }
+
+例如下面定义了一个名为apache的类，其包含了两个资源，一个是package类型的httpd，另一个是service类型的httpd。
+
+  class apache {
+      package { httpd: 
+        ensure => installed 
+      }
+      file { 'httpd.conf':
+        path    => '/etc/httpd/conf/httpd.conf',
+        ensure  => file,
+        require => Package['httpd'],
+        }
+      service { httpd: 
+        ensure => running, 
+          require => Package["httpd"],
+          subscribe => File['httpd.conf'],
+      }
+  }
+
+需要注意的是，类的名称只能以小写字母开头，可以包含小字字母、数字和下划线。另外，每个类都会引入一个新的变量scope，这意味着在任何时候访问类中的变量时，都得使用其完全限定名称。不过，在本地scop可以重新为top scope中的变量赋予一个新值。
+
+ 类声明
+
+在manifest文件中定义的类不会直接被执行，它们需要事先声明后才能被执行。例如，把上面的定义的apache类保存名为apache-test.pp的manifest文件，尝试执行。
+
+# puppet apply apache-test.pp 
+notice: Finished catalog run in 0.01 seconds
+
+上述的命令结果显示，其什么也没有执行，因为这里仅定义了类。要声明一个类，需要使用以定义过的类的名称为参数include函数。例如，这里将apache-test.pp文件中设定为如下内容，再次执行。
+
+  class apache {
+      package { httpd: 
+        ensure => installed 
+      }
+      file { 'httpd.conf':
+        path    => '/etc/httpd/conf/httpd.conf',
+        ensure  => file,
+        require => Package['httpd'],
+      }
+      service { httpd: 
+        ensure => running, 
+          require => Package["httpd"],
+          subscribe => File['httpd.conf'],
+      }
+  }
+
+  include apache
+
+而后再次执行“puppet apply”命令，其结果如下显示。
+# puppet apply apache-test.pp 
+notice: /Stage[main]/Apache/Package[httpd]/ensure: created
+notice: /Stage[main]/Apache/Service[httpd]/ensure: ensure changed 'stopped' to 'running'
+notice: Finished catalog run in 12.99 seconds
+
+ 带参数的类
+
+同一个类在不同的OS上可能会略有不同，因此需要通过获取相应系统的fact来实现有区别对待。然而，万一相应的OS没有输出类所期望的fact或者是类依赖于非fact因素时，此机制将无法满足需求。此实就需要使用带参数的类来完成此类功能，同时，在声明类时为其参数传递相应的值即可完成传参功能。
+
+在定义在带参数的类时，需要将参数声明在类名后的小括号“()”，参数可以有默认值；如果使用多个参数，彼此间要使用逗号分隔。在类的内部使用参数的方式同使用本地变量。下面的示例定义了一个具有两个参数的类。
+
+    class mysql ($user = 'mysql', $port = 3306) {
+      ...
+    }
+
+向类传递参数时，其方式如同定义资源的属性，因此，其也称为“资源属性风格的类声明”，其语法格式如下。
+  class {'class_name':
+      para1 => value1,
+      para2 => value2,
+      ...
+    }
+
+例如，向上述的mysql类的$user参数传递一个与默认mysql不同的值的方式如下所示。
+  class {'mysql':
+      user => mysqlserver,
+    }
+
+注意，不能在使用include声明类时向其传递参数，也就是说不能在include函数中为声明的类指定参数值。对于带参数的类来说，如果使用其参数的默认值，仍然可以使用include声明类，否则就必须使用“资源属性风格的类声明”。另外，如果在使用不同的参数值将某个类声明了多次，最后生效的声明将很难判定。
+
+ 模块(module)
+
+到目前为止，资源申报、定义类、声明类等所有功能都只能一个manifest文件中实现，但这却非最有效的基于puppet管理IT基础架构的方式。实践中，一般需要把manifest文件分解成易于理解的结构，例如将类文件、配置文件甚至包括后面将提到的模块文件等分类存放，并且通过某种机制在必要时将它们整合起来。这种机制即“模块”，它有助于以结构化、层次化的方式使用puppet，而puppet则基于“模块自动装载器”完成模块装载。
+
+从另一个角度来说，模块实际上就是一个按约定的、预定义的结构存放了多个文件或子目录的目录，目录里的这些文件或子目录必须遵循其命名规范。puppet会按此种规范在特定位置查找所需的模块文件，不过，这些特定目录也可以通过puppet的配置参数modulepath定义。
+
+只要在某模块中定义了一个类，就可以在任何manifest文件中使用它，puppet会自动去查找并装载包含了这个类的定义的manifest文件。因此，可以在puppet上提供多个模块，并按需要在manifest文件任意使用它们。于是，基于模块机制的puppet的主manifest文件就可以变得很小，也更易读并能基于策略进行定制。
+
+1 模块目录的结构
+
+在puppet中，模块本身用一个目录来表示，其需要存放于puppet的modulepath参数所定义的目录中，如/etc/puppet/modules。模块目录名称必须与模块名称相同，需要遵循特定的组织结构，如下所示。
+
+  MODULE NAME
+    manifests
+      init.pp
+    files
+    templates
+    lib
+    tests
+    spec
+
+MODULE NAME：模块名称，也即模块目录名称；模块名称只能以小写字母开头，可以包含小写字母、数字和下划线，但不能使用“main”或“settings”作为模块名；
+  manifests目录：包含当前模块的所有manifest文件；每个manifest文件必包含一个类或一个定义的类型，此文件访问路径格式为“ModuleName::[SubDirectoryName::]ManifestFileName”，注意manifiest文件名不需要其后缀.pp；
+    init.pp：只能包含一个单独的类定义，且类的名称必须与模块名称相同；
+  files目录：包含了一组静态文件，这些文件可被节点下载使用；每个文件的访问路径遵循puppet:///modules/MODULE_NAME/filename路径格式；
+  lib目录：插件目录，常用于自定义fact及自定义资源类型等；
+  templates目录：存储了manifest用到的模板文件，其访问路径遵循template('ModuleName/TemplateName')格式；关于模板文件的详细信息，后文有介绍；
+  tests目录：当前模块的使用帮助或使用范例文件，类似如何声明当前模块中的类及定义的类型等；
+  spec目录：类似于tests目录的功能，只不过，其是为lib目录中定义的各插件提供使用范例的；
+
+“puppet module list”可列出当前puppet上已经安装的所有模块。如果要安装模块，可使用“puppet module install <Module Name>”命令。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ user { 'magedu':
+      ensure     => present,
+      uid        => '601',
+      gid        => '601',
+      shell      => '/bin/bash',
+      home       => '/home/magedu',
+      managehome => true,
+    }
+
+
+
+
+
+
+
+
+group { 'magedu':
+	ensure 	=> present,
+	gid		=> 601,
+	before 	=> User['magedu'],
+}
+
+user { 'magedu':
+     ensure     => present,
+     uid        => '601',
+     gid        => '601',
+     shell      => '/bin/bash',
+     home       => '/home/magedu',
+}
+
+
+
+
+
+
+
+
+file { '/etc/nginx/nginx.conf':
+    ensure => file,
+    mode   => 644,
+    source => 'puppet:///modules/nginx/nginx.conf',
+}
+service { 'nginx':
+    ensure    => running,
+    enable    => true,
+    subscribe => File['/etc/nginx/nginx/conf'],
+}
+
+
+
+
+
+
+
+
+
+    package { 'nginx':
+	ensure => present,
+    }
+
+    service { 'nginx':
+      ensure    => running,
+      enable    => true,
+    }
+
+    Package['nginx'] ~> Service['nginx']
+
+
+
+
+
+
+
+
+$webserver = $operatingsystem ? {
+   /(?i-mx:ubuntu|debian)/        => 'apache2',
+   /(?i-mx:centos|fedora|redhat)/ => 'httpd',
+}
+
+package {"$webserver":
+        ensure => present,
+}
+
+
+
+Agent-Set Variables
+
+Master-Set Variables
+
+
+Parser-Set Variables
+
+
+
+
+
+单分支：
+    if CONDITION {
+		statement
+		...
+	}
+
+双分支：
+	if CONDITION {
+		statement
+		...
+	}
+	else {
+		statement
+		...
+	}
+
+多分支：
+	if CONDITION {
+		statement
+		...
+	}
+	elsif CONDITION {
+		statement
+		...
+	}
+	else {
+		statement
+		...
+	}	
+
+
+
+    if $operatingsystem =~ /^(?i-mx:(centos|redhat))/ {
+      notice("Welcome to $1 linux server")
+    }
+
+
+
+
+	case CONTROL_EXPRESS {
+		case1,...: { statement... }
+		case2,...：{ statement... }
+		... ...
+		default：{ statement... }
+	}
+
+
+
+
+    case $operatingsystem {
+      'Solaris':          { notice("Welcome to Solaris") }
+      'RedHat', 'CentOS': { notice("Welcome to RedHat OSFamily") }
+      /^(Debian|Ubuntu)$/:{ notice("Welcome to $1 linux") }
+      default:            { notice("Welcome, alien *_*") }
+    }
+
+
+
+
+
+
+
+	CONTROL_VARIABLE ? {
+		case1 => value1
+		case2 => value2
+		...
+		default => valueN
+	}
+
+
+
+
+
+	class my_class (para1='val1', para2='val2'){
+		  ... puppet code ...
+	}
+
+
+
+
+	class apache {
+	    package { httpd: 
+	    	ensure => installed 
+	    }
+	    file { 'httpd.conf':
+        path    => '/etc/httpd/conf/httpd.conf',
+        ensure  => file,
+        require => Package['httpd'],
+        }
+	    service { httpd: 
+	    	ensure => running, 
+	        require => Package["httpd"],
+	        subscribe => File['httpd.conf'],
+	    }
+	}
+
+
+
+类的名称只能以小写字母开头，可以包含小字字母、数字和下划线
+
+
+
+Declaring a Class With include
+Declaring a Class with require
+Declaring a Class Like a Resource
+
+
+
+Declaring a Class With an ENC
+
+
+
+
+
+
+
+
+class nginxserver ($ngserver='nginx') {
+    package {"$ngserver":
+        ensure => installed,
+        before => File['/etc/nginx/nginx.conf'],
+    }
+
+    file {'/etc/nginx/nginx.conf':
+        ensure => file,
+        source => '/backup/conf/nginx/nginx.conf',
+        mode => '0644',
+        owner => 'root',
+        group => 'root',
+        notify => Service['nginx'],
+    }
+
+    service {'nginx':
+        ensure => running,
+    }
+}
+
+
+#include nginxserver
+class {'nginxserver':
+        ngserver => 'tengine',
+}
+
+
+
+
+
+类的继承：
+
+class nginx {
+  package {'nginx':
+    ensure => installed,
+  }
+}
+
+class nginx::websrv inherits nginx {
+  file {'/etc/nginx/nginx.conf':
+    ensure => file,
+    mode => '0644',
+    owner => 'root',
+    group => 'root',
+    source => '/backup/conf/nginx/nginx.conf',
+    require => Package['nginx'],
+  }
+
+  service {'nginx':
+    ensure => running,
+    subscribe => File['/etc/nginx/nginx.conf'],
+  }
+}
+
+class nginx::rproxy inherits nginx {
+  file {'/etc/nginx/nginx.conf':
+    ensure => file,
+    mode => '0644',
+    user => 'root',
+    group => 'root',
+    source => '/backup/conf/nginx/nginx-proxy.conf',
+    require => Package['nginx'],
+  }
+
+  service {'nginx':
+    ensure => running,
+    subscribe => File['/etc/nginx/nginx.conf'],
+  }
+}
+
+include nginx::websrv
+
+
+
+
+
+
+
+
+
+
+
+	class {'class_name':
+      para1 => value1,
+      para2 => value2,
+      ...
+    }
+
+
+
+
+    class mysql ($user = 'mysql', $port = 3306) {
+      ...
+    }
+
+	class {'mysql':
+      user => mysqlserver,
+    }
+
+
+
+
+
+
+
+
+
+
+
+    class apache {
+      service {'apache':
+        require => Package['httpd'],
+      }
+    }
+
+    class apache::ssl inherits apache {
+      Service['apache'] {
+        require +> [ File['httpd.pem'], File['httpd.conf'] ],
+      }
+    }
+
+
+
+	MODULE NAME
+		manifests
+			init.pp
+		files
+		templates
+		lib
+		tests
+		spec
+
+
+
+node 'NODE FQDN' {
+		...
+	}
+
+
+
+
+
+
+
+生产环境案例：haproxy.pp
+
+class haproxy {
+  # init haproxy
+  class init {
+    file { '/etc/init.d/haproxy': 
+      ensure        => present,
+      source        => "puppet:///modules/haproxy/haproxy/init.d/haproxy.init",
+      group         => "root",
+      owner         => "root",
+      mode          => "0755",
+    }
+    exec { 'init_haproxy_service':
+      subscribe     => File['/etc/init.d/haproxy'],
+      refreshonly   => true, 
+      command       => "/sbin/chkconfig --add haproxy; /sbin/chkconfig --level 235 haproxy off;",
+    }
+    service { 'haproxy':
+      ensure      => running,
+      enable      => true, 
+      hasrestart  => true, 
+      hasstatus   => true, 
+#       restart     => true,
+    }
+  }
+
+  # init haproxy.cfg
+  class conf {
+#     file { '/usr/local/haproxy','/usr/local/haproxy/etc': 
+    file { ['/usr/local/haproxy','/usr/local/haproxy/etc']: 
+      ensure        => directory,
+      before        => File['/usr/local/haproxy/etc/haproxy.cfg'],
+      group         => "root",
+      owner         => "root",
+      mode          => "0755",
+    }
+
+    class piccenter {
+      file { '/usr/local/haproxy/etc/haproxy.cfg': 
+        ensure        => present,
+        source        => "puppet:///modules/haproxy/haproxy/conf/haproxy_piccenter.cfg",
+        group         => "root",
+        owner         => "root",
+        mode          => "0644",
+      }
+    }
+  }
+}
+
+
+
+
+
+
+keepalived.pp
+
+class keepalived {
+  # init haproxy
+  class init {
+    file { '/etc/init.d/keepalived': 
+      ensure        => present,
+      source        => "puppet:///modules/haproxy/keepalived/init.d/keepalived.init",
+      group         => "root",
+      owner         => "root",
+      mode          => "0755",
+    }
+    exec { 'init_keepalived_service':
+      subscribe     => File['/etc/init.d/keepalived'],
+      refreshonly   => true, 
+      command       => "/sbin/chkconfig --add keepalived; /sbin/chkconfig --level 235 keepalived off;",
+    }
+    service { 'keepalived':
+      ensure      => running,
+      enable      => true, 
+      hasrestart  => true, 
+      hasstatus   => true, 
+      restart     => true,
+    }
+  }
+}
+
+
+
+
+
+
+Ngnix: 分段配置案例
+
+反向代理使用（要自行提供proxy.conf配置文件）
+
+class nginx {
+} 
+
+class nginx::proxyconf inherits nginx { 
+  file { "/usr/local/nginx/conf/proxy.conf": 
+    ensure => present,
+    source => "puppet:///modules/nginx/conf/proxy.conf",
+    group => "root",
+    owner => "root",
+    mode  => "0644"
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+将每个或第类节点的定义放在一个单独的文件中，如/etc/puppet/manifests/nodes.d/目录下的文件，而后使用import指令将其导入进site.pp，则site.pp文件则会变得更易被读取。如将前述的site.pp的内容保存为/etc/puppet/manifests/nodes.d/nginx，而将site.pp的内容修改为如下所示，其效果与前面相同。
+
+  import 'nodes.d/nginx'
+
+
+
+
+
+
+如果期望agent端启动nginx服务时使用一个定制的配置文件，文件事先存放于puppet端，并且配置文件生次修改后都能自动同步至agent端，并通知agent端自动重启nginx服务，修改site.pp文件内容如下所示即要。
+
+
+
+
+
+
+
+而要引用一个资源，需要通过资源的类型和标题结合起来进行，如Package["nginx"]。
+
+不同的OS或平台在管理特定类型资源存在差异，因而，puppet必须能理解及按需处理这些差异。此外，每一种类型资源都有许多不同的“提供者”，例如，Package类型的资源在不同的OS上甚至是同一种OS的不同发行版上其实现及管理方式是有所不同的，如yum、apt-get、pkgadd、ports和ererge等。puppet agent使用“Facter”向puppet server返回其特性的属性，比如OS等，puppet server则要根据此返回的信息为其选择匹配的资源提供者，并使用这个提供者来完成后续的许多操作。
+
+
+
+对package类型的资源来说，由于不同的OS平台支持的安装方式可能有所不同以及特定资源类型自身的特性存在差异，每一种资源类型
+
+类型 {标题：
+  属性 => 值,
+}
+
+
+
+
+
+
+应用场景：
+  统一配置管理软件
+  统一配置系统优化参数
+  定期检测服务是否运行
+  根据机器硬件环境自动为相应主机上的软件配置合理的属性
+
+
+1、安装
+
+前提：配置使用epel的yum源，而后使用yum命令安装即可。
+
+1.1 安装部署puppet服务器端
+
+# yum install puppet-server 
+
+1.2 安装puppet客户端
+
+# yum install puppet
+
+2、启动
+
+2.1 启动puppet服务器
+
+首次启动puppet-server守护进程时，其会自动进行运行环境的初始化，例如创建一个本地CA及服务器端相关的证书和密钥等。初始化操作完成后，puppet就会监听指定的套接字并等待客户端的连接请求。默认情况下，其证书和密钥等文件位于/var/lib/puppet/ssl/目录中。
+
+出于调试的目的，首次启动puppet服务进程可以以非守护进程方式进行，并让其输出详解信息以便于观察初始化过程。如下所示过程，其逐步展示了创建本地CA、作为puppet服务器的本地主机向CA申请证书、获得证书以及CA移出证书签署请求的过程等，而后启动服务进程并准备接受各agent的连接请求。为下面的命令额外使用--debug选项，还可以获得更为详细的输出信息。
+
+# puppet master --verbose --no-daemonize
+info: Creating a new SSL key for ca
+info: Creating a new SSL certificate request for ca
+info: Certificate Request fingerprint (md5): F7:DA:56:69:37:4E:AC:86:24:64:51:34:A2:4E:E5:3B
+notice: Signed certificate request for ca
+notice: Rebuilding inventory file
+info: Creating a new certificate revocation list
+info: Creating a new SSL key for puppetserver.magedu.com
+info: Creating a new SSL certificate request for puppetserver.magedu.com
+info: Certificate Request fingerprint (md5): 43:1B:6B:98:2A:F2:C6:CF:6C:69:34:D8:A1:90:F8:FF
+notice: puppetserver.magedu.com has a waiting certificate request
+notice: Signed certificate request for puppetserver.magedu.com
+notice: Removing file Puppet::SSL::CertificateRequest puppetserver.magedu.com at '/var/lib/puppet/ssl/ca/requests/puppetserver.magedu.com.pem'
+notice: Removing file Puppet::SSL::CertificateRequest puppetserver.magedu.com at '/var/lib/puppet/ssl/certificate_requests/puppetserver.magedu.com.pem'
+notice: Starting Puppet master version 2.6.18
+
+注意：如果此前曾以其它主机名或各种原因启动过puppet客户端进程并完成过初始化，其证书文件将无法符合本此启动的需要；此时，需要先清空/var/lib/puppet/ssl/目录方可完成后续的初始化操作。
+
+如果上述的测试启动没有问题，可中止当前的启动后将之启动守护进程了，在CentOS6上，通常会使用如下命令进行。
+
+# service puppetmaster start
+# chkconfig puppetmaster on
+
+2.2 启动puppet客户端
+
+puppet agent在首次启动时，会向为其指定的puppet server申请证书，并完成后续连接请求。同样地理由，出于测试的目的，接入当前puppet集群中的首个agent节点可以以非守护进程的方式进行，以观察其初始化过程，如下面的命令所示。
+
+# puppet agent --server=puppetserver.magedu.com --no-daemonize --verbose
+info: Creating a new SSL key for node2.magedu.com
+info: Caching certificate for ca
+info: Creating a new SSL certificate request for node2.magedu.com
+info: Certificate Request fingerprint (md5): A2:9F:B4:29:BE:BD:FB:F0:96:7C:E1:18:FD:33:16:9F
+
+此时，在puppet服务器端使用puppet cert命令管理客户端的证书请求，其--list选项能够查看等待签署证书的客户端列表，而--sign选项可用于为指定指定节点签署证书，如果要一次性地为多个节点的证书申请进行签署可同时使用--all选项。
+
+# puppet cert --list
+  "node2.magedu.com" (A2:9F:B4:29:BE:BD:FB:F0:96:7C:E1:18:FD:33:16:9F)
+
+# puppet cert --sign node2.magedu.com
+notice: Signed certificate request for node2.magedu.com
+notice: Removing file Puppet::SSL::CertificateRequest node2.magedu.com at '/var/lib/puppet/ssl/ca/requests/node2.magedu.com.pem'
+
+一旦agent节点收到签署过的证书时，其就会显示类似如下信息。
+info: Caching certificate for node2.magedu.com
+notice: Starting Puppet client version 2.6.18
+
+确保上述agent相关的操作不存在问题后，便可以将--server选项指定的信息存储于agent的配置文件中，并以服务进程的方式启动puppet agent了。其配置文件为/etc/puppet/puppet.conf，server指令定义于[main]段中。配置完成，即可以服务方式启动puppet。
+
+# service puppet start
+# ckconfig puppet on
+
+再次通过客户端测试。
+
+# puppet agent --server=puppetserver.magedu.com --no-daemonize --verbose --test
+info: Caching certificate for node2.magedu.com
+info: Caching certificate_revocation_list for ca
+info: Caching catalog for node2.magedu.com
+info: Applying configuration version '1378628609'
+notice: Finished catalog run in 0.05 seconds
+
+如下的信息显示其已经能正常与master建立连接，此时，
+
+
+
+
+
+
+
+Puppet将包含配置数据的文件称作清单(manifest)，其由许多主要组件共同组成：
+  资源：独立的配置项；
+  文件：能发送到agent的真实文件；
+  模板：能够填充文件的模板文件；
+  节点：用于指定每一个agent的配置；
+  类：资源容器；
+  定义：资源组合的容器；
+
+这些组件由一个包含变量、条件、数组和其它特性的配置语言进行封装。
+
+在Puppet中，以符号$开头的配置语句是可以进行赋值的变量，并能够在Puppet的配置中使用。
+
+
+在节点定义中经常使用include指令，用于为当前主机指定需要应用的配置之集合。其可以包含两种配置集合：
+  类：资源的基本容器；
+  模块：高级的、便于移植的资源窗口，包含类、定义及其它一些配置。
+
+
+
+模块是清单、资源、文件、模板、类以及定义的窗口，其通常包含一个特定应用程序所需要所有配置。每个模块都需要一个特定的目录结构和一个叫做init.pp的文件。这个目录结构能够协助Puppet自动载入模块。为了执行自动载入的功能，Puppet会检查一系列由modulepath参数定义的被称为模块路径的目录。
+
+
+
+puppet环境：
+
+
+
+
+
+
+自动签发证书
+可以设置master自动签发所有的证书，我们只需要在/etc/puppet 目录下创建 autosign.conf 文件。（不需要修改 /etc/puppet/puppet.conf文件，因为我默认的autosign.conf 文件的位置没有修改）
+
+cat > /etc/puppet/autosign.conf <<EOF
+*.magedu.com
+EOF
+这样就会对所有来自 magedu.com 的机器的请求，都自动签名。
+
+
+
+
+
+
+
+
+
+
+
+
+
+puppet每半个小时检查一次更新，也可以主动触发强制客户端更新。
+
+
+
+
+
+
+
+
+安装配置puppet-dashboard:
+
+
+# yum install rubygem-rake ruby-mysql 
+
+# yum localinstall puppet-dashboard
+
+# gem install rake
+
+
+准备好mysql数据库服务器，连接后创建数据库并完成授权。
+
+CREATE DATABASE dashboard CHARACTER SET utf8;
+GRANT ALL PRIVILEGES ON dashboard.* TO 'dashboard'@'localhost' IDENTIFIED BY 'your_password';
+
+
+
+如果mysql服务器为远程主机，则需要修改授权用户的访问节点。
+
+
+
+
+修改/usr/share/puppet-dashboard/config/database.yml中的production段。
+
+production:
+  host: 172.16.100.15
+  database: dashboard
+  username: dashboard
+  password: dbdpass
+  encoding: utf8
+  adapter: mysql
+
+
+# cd /usr/share/puppet-dashboard/config/
+# rake gems:refresh_specs
+
+
+为dashboard依赖的数据库导入所需要的表：
+rake RAILS_ENV=production db:migrate
+
+
+
+
+
+
+
+测试服务器是否能正常工作：
+
+/usr/share/puppet-dashboard/script/server -e production
+
+默认其监听于3000/tcp端口，可以通过此端口访问相应的服务了。
+
+
+
+配置puppet服务端和客户端
+服务器端配置    
+  # puppet.conf (on puppet master)
+  [master]
+    reports = store, http
+    reporturl = http://dashboard.example.com:3000/reports/upload
+ 
+ 完成后重启puppetmaster服务。
+ 
+ 
+在客户端配置
+  # puppet.conf (on each agent)
+  [agent]
+    report = true
+
+完成后重启puppet服务。
+
+
+而后打开dashboard，如果看到“# pending task”类的信息，且数字大于0，则表示已经正常接收报告了，一旦有用户任务延迟就会记录在dashboard中。
+
+
+
+可以配置dashboard通过passanger和apache提供服务。
+
+
+
+
+
+
+
+
+
+puppet kick 功能实现
+
+puppet客户端默认每30分钟跟服务器通讯一次，但是有时，我们希望服务端能给客户端紧急推送一些任务，于是就有了puppet kick（puppet 2.6以前叫puppetrun）。
+ 
+编辑客户端/etc/puppet/puppet.conf
+在[agent]后面添加   
+listen = true  //这个是让puppet监听8139端口 
+
+编辑或新建文件/etc/puppet/namespaceauth.conf，包含下面内容
+[puppetrunner] 
+allow *.magedu.com 
+ 
+编辑文件auth.conf
+path /run 
+method save 
+allow puppet.magedu.com    
+# puppet master
+ 
+# this one is not stricly necessary, but it has the merit 
+# to show the default policy which is deny everything else 
+path / 
+auth any 
+ 
+推送方法，在服务端运行命令
+puppet kick -p 10 –host 客户端 
+或 
+puppetrun -p 10 –host 客户端 
+
+
+
+
+
+puppet+kick 
+  agent: 启动kick服务，8139；
+  puppet kick
+
+
+apache(passanger) puppet(master)
+
+
+
+
+
+mcollective
+
+调度工具：队列调度器(activemq, rabbitmq, qpid)
+
+
+
+
+
+
+
+
+

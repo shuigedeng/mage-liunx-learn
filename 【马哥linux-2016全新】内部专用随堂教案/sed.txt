@@ -1,0 +1,5 @@
+g： 将hold space中的内容拷贝到pattern space中，原来pattern space里的内容清除
+G： 将hold space中的内容append到pattern space\n后
+h： 将pattern space中的内容拷贝到hold space中，原来的hold space里的内容被清除
+H： 将pattern space中的内容append到hold space\n后
+x： 交换pattern space和hold space的内容

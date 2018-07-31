@@ -1,0 +1,121 @@
+
+session会话保持之session服务器
+
+前提：
+两个tomcat节点：172.16.100.7(tomcatA.magedu.com)，172.16.100.8(tomcatB.magedu.com)
+两个memcached节点：172.16.100.9, 172.16.100.10
+一个负载均衡节点：172.16.100.6
+
+Clients-->172.16.100.6-->(tomcatA, tomcatB)
+
+
+memcached-session-manager项目地址，http://code.google.com/p/memcached-session-manager/
+
+下载如下jar文件至各tomcat节点的tomcat安装目录下的lib目录中，其中的${version}要换成你所需要的版本号，tc${6,7,8}要换成与tomcat版本相同的版本号。
+	memcached-session-manager-${version}.jar
+	memcached-session-manager-tc${6,7,8}-${version}.jar
+	spymemcached-${version}.jar
+	msm-javolution-serializer-${version}.jar
+	javolution-${version}.jar
+
+
+分别在两个tomcat上的某host上定义一个用于测试的context容器，并在其中创建一个会话管理器，如下所示：
+
+           <Context path="/test" docBase="/usr/local/tomcat/webapps/test" reloadable="true">
+              <Manager className="de.javakaffee.web.msm.MemcachedBackupSessionManager"
+                memcachedNodes="n1:172.16.100.9:11211,n2:172.16.100.10:11211"
+                failoverNodes="n1"
+                requestUriIgnorePattern=".*\.(ico|png|gif|jpg|css|js)$"
+                transcoderFactoryClass="de.javakaffee.web.msm.serializer.javolution.JavolutionTranscoderFactory"
+              />
+             </Context>
+
+
+分别为两个context提供测试页面：
+
+tomcatA:
+# mkdir -pv /usr/local/tomcat/webapps/test/WEB-INF/{classes,lib}
+# vim /usr/local/tomcat/webapps/test/index.jsp
+添加如下内容：
+<%@ page language="java" %>
+<html>
+  <head><title>TomcatA</title></head>
+  <body>
+    <h1><font color="red">TomcatA.magedu.com</font></h1>
+    <table align="centre" border="1">
+      <tr>
+        <td>Session ID</td>
+    <% session.setAttribute("magedu.com","magedu.com"); %>
+        <td><%= session.getId() %></td>
+      </tr>
+      <tr>
+        <td>Created on</td>
+        <td><%= session.getCreationTime() %></td>
+     </tr>
+    </table>
+  </body>
+</html>
+
+
+tomcatB:
+# mkdir -pv /usr/local/tomcat/webapps/test/WEB-INF/{classes,lib}
+# vim /usr/local/tomcat/webapps/test/index.jsp
+添加如下内容：
+<%@ page language="java" %>
+<html>
+  <head><title>TomcatB</title></head>
+  <body>
+    <h1><font color="blue">TomcatB.magedu.com</font></h1>
+    <table align="centre" border="1">
+      <tr>
+        <td>Session ID</td>
+    <% session.setAttribute("magedu.com","magedu.com"); %>
+        <td><%= session.getId() %></td>
+      </tr>
+      <tr>
+        <td>Created on</td>
+        <td><%= session.getCreationTime() %></td>
+     </tr>
+    </table>
+  </body>
+</html>
+
+
+在172.16.100.6上配置反向代理的负载均衡内容，类似如下所示：
+<Proxy balancer://tomcat>
+    BalancerMember  http://172.16.100.7:8080 loadfactor=1
+    BalancerMember  http://172.16.100.8:8080 loadfactor=1
+    ProxySet  lbmethod=byrequests
+</Proxy>
+
+ProxyVia Off
+ProxyRequests Off
+ProxyPass / balancer://tomcat/
+ProxyPassReverse / balancer://tomcat/
+<Proxy *>
+    Order Allow,Deny
+    Allow From all
+</Proxy>
+
+<Location />
+    Order Allow,Deny
+    Allow From all
+</Location>
+
+
+
+测试结果，在浏览器中访问http://172.16.100.6/test，结果如下所示，其session ID在负载均衡环境中保持不变。
+
+TomcatA.magedu.com
+
+Session ID	4DD0340CE6294FF2BBE802CD4CD039EC-n2
+Created on	1399890838103
+
+
+TomcatB.magedu.com
+
+Session ID	4DD0340CE6294FF2BBE802CD4CD039EC-n2
+Created on	1399890838103
+
+
+

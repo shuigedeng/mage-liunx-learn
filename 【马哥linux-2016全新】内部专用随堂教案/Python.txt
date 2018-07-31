@@ -1,0 +1,1210 @@
+
+
+
+
+shell编程：
+
+控制语言：胶水语言
+
+框架：web，Django
+
+字节码：bytecode
+
+面向过程：
+	以指令为中心，由指令处理数据
+	如何组织代码解决问题
+
+面向对象：
+	以数据为中心，所有的处理代码都围绕数据展开
+	如何设计数据结构组织数据，并提供对此类数据所允许处理操作
+
+简单方法：
+	1、编译安装新版本至某特定路径；
+	2、pyenv
+
+数据类型：转化
+	隐式
+	显式
+
+字典：kv集合
+	{'a':31, 'b':78}
+
+	dir(), id(), type(), str(), help(), len(),
+	callable()
+
+	Python过程式编程：
+
+
+	每个模块都有一个名为__name__的内建变量，此变量值会根据调用此模块的方式发生变化：
+		如果此文件被作为模块导入，则__name__的值为模块名称
+		如果此文件被直接执行，则__name__的值为“__main__”；
+
+
+	class: 自定义类型
+	type: 
+
+	instance: 实例化
+
+	类：数据和方法
+		数据：变量
+		方法：函数
+
+	类：实例化成对象
+		CA:
+			IA:
+			IB:
+
+	两个对象比较：
+		1、值比较：对象中的数据是否相同；
+		2、身份比较：两个变量名引用的是否为同一对象；
+		3、类型比较：两个对象的类型是否相同；
+
+	核心数据类型：
+		数字：int, long, float, complex, bool
+		字符：str, unicode
+		列表：list
+		字典：dict
+		元组: tuple
+		文件：file
+		其它类型：集合(set), frozenset, 类类型, None
+
+	其它文件类工具：pipes, fifos, sockets
+
+	类型转换：
+		str(), repr()或format()：将非字符型数据转换为字符；
+		int(): 转为整数
+		float(): 
+
+		list(s): 将字串s转为列表; 
+		tuple(s): 将字串s转为元组；
+		set(s)： 将字串s转为集合; 
+		frozenset(s): 将字串s转换为不可变集合;
+		dict(d)：创建字典；其d必须是(key, value)的元组序列;
+
+		chr(x): 将整数转为字符
+		ord(x): 将字符转换为整数值
+		hex(x)：将整数转换为16进制字符
+		bin(x)
+		oct(x)
+
+	数字类型：
+
+		Python的数字字面量：布尔型，整数，浮点数，复数；
+			True: 1
+			False：0
+
+
+
+	序列类型：
+		字符类型：
+				字符串字面量：把文本放入单引号、双引号或三引号中；
+				''', """
+
+			如果要使用unicode编码，则在字符之前使用字符u进行标识，如u"magedu"
+
+			文档字串：模块、类或函数的第一条语句是一个字符的话，该 字符串就成为文档字符串，可以使用__doc__属性引用；
+
+			运算符：
+				索引运算：[i]
+				切片运算：[i:j]
+				扩展切片：[i:j:stride]
+
+			支持运算：
+				索引、切片、min()、max()、len()等
+			支持操作：
+				对象的自有的方法：
+
+		列表：
+			容器类型
+				任意对象的有序集合，通过索引访问其中的元素，可变对象，长度可变
+				异构，任意嵌套
+
+			支持在原处修改；
+				修改指定的索引元素，修改指定的分片，删除语句，内置方法
+
+			l1 + l2: 合并两个列表，返回一个新的列表；不会修改原列表；
+			l1 * N: 把l1重复N次，返回一个新列表; 
+
+			in: 成员关系判断字符, 用法 obj in container
+			not in: obj not in container
+
+			列表解析：[]
+
+			列表复制方式：
+				l1 = [1,2,3,4]
+				l2 = l1
+
+				import copy
+				l2 = copy.deepcopy(l1)
+
+				l2 = l1[:]
+
+		元组：
+			表达式符号：()
+
+			容器类型
+				任意对象的有序集合，通过索引访问其中的元素，不可变对象，长度固定
+				异构，嵌套
+
+			常见操作：
+				()
+				(1,)
+				(1,2)
+
+				t1 + t2: 
+				t1 * N:
+
+				in:
+				not in:
+
+			虽然元组本身不可变，但如果元组内嵌套了可变类型的元素，那么此类元素的修改不会返回新元组；
+
+		字典：dict
+
+			字典在其它编程语言中又称作关联数组或散列表；
+
+			通过键实现元素存取；无序集合；可变类型容器，长度可变，异构，嵌套；
+
+			{key1:value1, key2:value2, ...}
+
+			{}: 空字典
+			{'x': 32, 'y': [1,2,3]}
+
+			字典复制：d2 = d1.copy()
+
+			d1.iteritems: 返回一个迭代器对象
+
+
+	回顾：
+		Python: 动态语言、强类型
+			内置类型，自定义类型（class）
+
+			整数、布尔
+			浮点：
+
+			序列：
+				字符串、列表、元组
+
+			字典：
+			集合：set, frozenset
+
+		可变对象：列表、字典、set
+		不可变对象：数值、字串、元组、frozenset
+
+	对象的三部分：身份、类型、值
+	对象的比较：
+		身份比较：用于确定是否同一个对象
+			id()
+		类型比较：用于确定是否同属于一个类型
+			type()
+		值比较：值是否相同
+			直接等值比较
+
+	数值、字串、列表、元组、字典
+
+	类：数据+方法
+		实例：
+
+		3 + 5
+		3.__add__(5)
+
+	列表和字典：
+
+	变量名，
+	对象
+
+	a = 3
+	a = { }
+
+	x = 3
+
+	点号运算符：
+		属性：数据
+			返回一个数据，显示则要使用print语句
+		方法：操作 ()
+			调用：执行一段代码
+
+	可调用对象：callable()
+
+	字串：'', "", ''' ''' , """ """,
+	列表：[]
+	元组：()
+
+	字典：{}
+	数值：
+
+如何获取使用帮助：
+	获取对象支持使用的属性和方法：dir()
+	某方法的具体使用帮助：help(list.pop)
+	获取可调用对象的文档字串：print obj.__doc__
+
+	集合：无序排列、可哈希；
+		支持集合关系测试
+		成员关系测试：
+			in
+			not in
+			迭代
+
+		不支持：索引、元素获取、切片
+
+		集合的类型：set(), frozenset()
+
+		没有特定语法格式，只能通过工厂函数创建
+
+
+容器、类型、对象
+
+	1、
+
+	2、所有对象都有引用计数
+
+	3、列表和字典都支持两种类型的复制操作：浅复制和深复制；深复制可使用copy模块中的deepcopy()实现。
+
+	4、Python中的所有对象都是“第一类的”，这意味着使用标识符命名的所有对象都具有相同状态，于是，能够命名所有对象都可以直接当数据进行处理；
+
+	5、所有序列都支持迭代；
+
+	6、所有序列都支持的操作和方法：
+		s[i]
+		s[i:j]
+		s[i:j:stride]
+		len(s)
+		min(s)
+		max(s)
+		sum(s)
+		all(s)
+		any(s)
+		s1 + s2: 连接
+		s1 * N: 重复
+		obj in s1: 成员关系判断
+		obj not in s1: 
+
+	7、可变序列的操作：
+		s1[index] = value: 元素赋值
+		s1[i:j] = t: 切片赋值
+		del s1[index]
+		del s1[i:j]
+		del s1[i:j:stride]
+
+
+Python的表达式和语句：
+
+	表达式：
+	语句：
+
+	Python中的常用的表达式操作符：
+
+		x + y, x - y
+		x * y, x / y, x // y, x % y
+
+		逻辑运算：
+		x or y, x and y, not x
+
+		成员关系运算：
+		x in y, x not in y
+
+		对象实例测试：
+		x is y, x not is y
+
+		比较运算：
+		x < y, x > y, x <= y, x >= y, x == y, x != y
+
+		位运算：
+		x | y, x & y, x ^ y, x << y, x >> y
+
+		一元运算：
+		-x, +x, ~x:
+
+		幂运算：
+		x ** y
+
+		索引和分片：
+		x[i], x[i:j], x[i:j:stride]
+
+		调用：
+		x(...)
+
+		取属性：
+			x.attribute
+
+		元组：(...)
+		序列：[...]
+		字典：{...}
+
+		三元选择表达式：x if y else z
+
+		匿名函数：lambda args: expression
+
+		生成器函数发送协议：yield x
+
+	运算优先级：
+		(...), [...], {...}
+		s[i], s[i:j]
+		s.attribute
+		s(...)
+		+x, -x, ~x
+		x ** y
+		*, /, //, %
+		+, -
+		<<, >> 
+		&
+		^
+		|
+		<, <=, >, >=, ==, !=
+		is, not is
+		in, not in
+		not
+		and
+		or
+		lambda
+
+	语句：
+		赋值语句
+		调用
+		print： 打印对象
+		if/elif/else: 条件判断
+		for/else: 序列迭代
+		while/else: 普通循环
+		pass: 占位符
+		break: 
+		continue
+		def
+		return
+		yield
+		global: 命名空间
+		raise: 触发异常
+		import: 
+		from: 模块属性访问
+		class: 类
+		try/except/finally: 捕捉异常
+		del: 删除引用
+		assert: 调试检查
+		with/as: 环境管理器
+
+	赋值语句：
+		隐式赋值：import, from, def, class, for, 函数参数
+
+		元组和列表分解赋值：当赋值符号(=)的左侧为元组或列表时，Python会按照位置把右边的对象和左边的目标自左而右逐一进行配对儿；个数不同时会触发异常，此时可以切片的方式进行；
+
+		多重目标赋值
+
+		增强赋值: +=, -=, *=, /=, //=, %=, 
+
+
+	条件测试：
+		if 条件测试表达式
+
+		Python中的真假：
+		1、任何非0数字和非空对象都为真；
+		2、数字0、空对象和特殊对象None均为假；
+		3、比较和相等测试会递归地应用于数据结构中；
+		4、返回值为True或False；
+
+		组合条件测试：
+		X and Y: 与运算
+		X or Y: 或运算
+		not X: 非运算
+
+		A = X if Y else Z
+			if Y:
+				A = X
+			else
+				A = Z
+
+		expression1 if boolean_expression else expression2
+
+	while:
+
+		while bool_expression: 
+			while_suite
+		else:
+			else_suite
+
+		break: 跳出最内层的循环；
+		continue: 跳到所处的最近层循环的开始处；
+		pass: 点位语句
+		else代码块：循环正常终止才会执行；如果循环终止是由break跳出导致的，则else不会执行；
+
+		练习1：逐一显示指定列表中的所有元素；
+		count = 0
+		while count < len(l1):
+		    print l1[count]
+		    count += 1
+
+		while l1:
+			print l1[0]
+			l1.pop(0)
+
+
+		练习2：求100以内所有偶数之和；
+
+		练习3：逐一显示指定字典的所有键；并于显示结束后说明总键数；
+		d1 = {'x':1, 'y':23, 'z': 78}
+		keylist = d1.keys()
+		while keylist:
+		    print keylist[0]
+		    keylist.pop(0)
+		else:
+			print len(d1)
+
+		练习4：创建一个包含了100以内所有奇数的列表；
+		l1 = []
+		x = 1
+		while x < 100:
+			l1.append(x)
+			x += 2
+
+		练习5：逆序逐一显示一个列表的所有元素
+
+		练习6：列表l1=[0,1,2,3,4,5,6], 列表l2=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]，以第一个列表中的元素为键，以第二个列表中的元素为值生成字典d1；
+
+		d1 = {}
+		count = 0
+		if len(l1) == len(l2):
+		    while count < len(l1):
+		    	d1[l1[count]] = l2[count] 
+		    	count += 1
+
+		while True:
+
+
+	for循环练习：
+
+		练习1：逐一分开显示指定字典d1中的所有元素，类似如下
+			k1 v1
+			k2 v2
+			...
+
+		for (k,v) in d1.items():
+			print k,v
+
+		练习2：逐一显示列表中l1=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]中的索引为奇数的元素；
+		for i in range(1,len(l1),2):
+			print l1[i]		
+
+		练习3：将属于列表l1=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]，但不属于列表l2=["Sun","Mon","Tue","Thu","Sat"]的所有元素定义为一个新列表l3; 
+		l3 = []
+		for i in l1:
+		    if i not in l2:
+		    	l3.append(i)
+
+		练习4：已知列表namelist=['stu1','stu2','stu3','stu4','stu5','stu6','stu7']，删除列表removelist=['stu3', 'stu7', 'stu9']；请将属于removelist列表中的每个元素从namelist中移除(属于removelist，但不属于namelist的忽略即可)；
+		for i in removelist:
+			if i in namelist:
+				namelist.remove(i)
+
+
+回顾：
+
+	1、动态语言
+		sys.getrefcount()
+
+		增加对象的引用计数场景：
+			对象创建时；
+			将对象添加进容器时；类似list.append()
+			当对象被当作参数传递给函数时
+			为对象创建另外变量名
+
+		减少引用计数：
+			引用此对象的某变量名被显式销毁：del x
+			给引用此对象的某变量名重新赋值
+			从容器中移除对象时，类似list.pop()
+			容器本身被销毁
+
+	2、if
+		if boolean_expression: 
+		    ...
+		elif boolean_expression:
+		 	...
+		else
+		    ...
+
+	3、while
+		while boolean_expression:
+			while_suite
+			if boolean_expression2: continue
+			if boolean_expression3: break
+		else:
+			else_suite
+
+	4、for
+		for expression in object:
+			for_suite
+			if boolean_expression2: continue
+			if boolean_expression3: break
+		else:
+			else_suite
+
+
+
+    while True:
+	    x = raw_input('Enter an entry: ')
+	    if x == 'q' or x == 'quit':
+	        break
+	    else:
+	        test.append(x)
+
+
+	列表解析：根据已经有列表，高效生成新列表的方式
+		['x','y','z'], [1,2,3]
+		[('x', 1), ('x', 2)]
+
+	var_name = open(file_name[mode,[bufsize]])
+		mode:
+			r
+			w
+			a
+			r+
+			w+
+			a+
+
+		b表示以二进制模式打开文件：
+			rb
+			wb
+			ab
+			rb+
+			wb+
+			ab+
+
+		缓冲：
+			0： 禁用
+			负数：使用系统默认缓冲
+			1: 使用缓冲，只缓冲一行数据
+			2+：指定缓冲空间大小
+
+		file.seek(offset[whence])
+			whence: 起点
+				0: 从文件头
+				1：从当前位置
+				2：从文件尾部
+
+			offset: 偏移量
+
+	文件系统功能：os
+
+	目录：
+		chdir()：改变工作目录
+		chroot(): 设定当前进程的根目录
+		listdir(): 列出指定目录下的所有文件名
+		mkdir(): 创建指定目录
+		makedirs(): 创建多级目录
+		getcwd()
+		rmdir():
+		removedirs(): 删除多级目录
+
+	文件：
+		mkfifo()
+		mknod(): 
+		remove()
+		unlink()
+		rename(): 重命名
+		stat(): 返回文件状态信息
+		symlink():
+		utime(): 更新时间戳
+		tmpfile(): 创建并打开（w+b）一个新的临时文件
+
+	访问权限：
+		access(): 
+		chmod(): 修改权限
+		chown()：修改属主，属组
+		umask(): 设置默认权限模式
+
+	文件描述符：
+		open(): 
+		read():
+		write():
+
+	设备文件：
+		mkdev(): 
+		major():
+		minor():
+
+	os.path: 跟文件路径相关
+
+		basename(): 路径基名
+		dirname(): 路径目录名
+		join(): 
+		split(): 返回dirname(), basename()元组
+		splitext(): 返回(filename, extension)元组
+
+		信息：
+		getatime()
+		getctime()
+		getmtime()
+		getsize(): 返回文件的大小
+
+		查询：
+		exists(): 判断指定文件是否存在
+		isabs(): 判断指定的路径是否为绝对路径
+		isdir(): 是否为目录
+		isfile(): 是否为文件
+		islink(): 是否符号链接
+		ismount(): 是否为挂载点
+		samefile(): 两个路径是否指向了同一个文件
+
+	练习：判断文件是否存在，存在则打开
+		让用户通过键盘反复输入多行数据，
+		追加保存至此文件中
+
+	对象持久存储：
+		pickle
+		marshal
+
+		DBM接口：
+
+		shelve模块
+
+
+
+
+
+迭代器（iterator）有时又称游标（cursor）是程式设计的软件设计模式，可在容器物件（container，例如链表或阵列）上遍访的接口，设计人员无需关心容器物件的内存分配的实现细节。
+
+各种语言实作迭代器的方式皆不尽同，有些面向对象语言像Java, C#, Ruby, Python, Delphi都已将迭代器的特性内建语言当中，完美的跟语言整合，我们称之隐式迭代器（implicit iterator），但像是C++语言本身就没有迭代器的特色，但STL仍利用模板实作了功能强大的迭代器。STL容器的数据的内存地址可能会重新分配（reallocate)，与容器绑定的迭代器仍然可以定位到重新分配后的正确的内存地址。
+
+迭代器另一方面还可以整合生成器（generator）。有些语言将二者视为同一接口，有些语言则将之独立化。
+
+
+
+
+在 Python 中，迭代器是遵循迭代协议的对象。使用 iter() 从任何序列对象中得到迭代器（如 list, tuple, dictionary, set 等）。另一种形式的输入迭代器是generator 。
+
+要使得迭代器指向下一个元素，则使用成员函数next()（Python 2）或函数next()（Python 3） 。当没有元素时，则引发 StopIteration异常。若要实现迭代器，则需要在类中定义next()（Python 2）或__next__()（ Python 3）。
+
+
+
+列表解析
+
+在需要改变列表而不是需要新建某列表时，可以使用列表解析。列表解析表达式为：
+
+[expr for iter_var in iterable] 
+[expr for iter_var in iterable if cond_expr]
+第一种语法：首先迭代iterable里所有内容，每一次迭代，都把iterable里相应内容放到iter_var中，再在表达式中应用该iter_var的内容，最后用表达式的计算值生成一个列表。
+第二种语法：加入了判断语句，只有满足条件的内容才把iterable里相应内容放到iter_var中，再在表达式中应用该iter_var的内容，最后用表达式的计算值生成一个列表。
+
+
+
+
+生成器表达式
+
+生成器表达式是在python2.4中引入的，当序列过长， 而每次只需要获取一个元素时，应当考虑使用生成器表达式而不是列表解析。生成器表达式的语法和列表解析一样，只不过生成器表达式是被（）括起来的，而不是[]
+
+生成器表达式并不真正创建数字列表， 而是返回一个生成器，这个生成器在每次计算出一个条目后，把这个条目“产生”(yield)出来。 生成器表达式使用了“惰性计算”(lazy evaluation，也有翻译为“延迟求值”，我以为这种按需调用call by need的方式翻译为惰性更好一些)，只有在检索时才被赋值（ evaluated），所以在列表比较长的情况下使用内存上更有效。A generator object in python is something like a lazy list. The elements are only evaluated as soon as you iterate over them. 
+
+一些说明：
+
+1. 当需要只是执行一个循环的时候尽量使用循环而不是列表解析，这样更符合python提倡的直观性。
+
+for item in sequence:
+process(item)
+2. 当有内建的操作或者类型能够以更直接的方式实现的，不要使用列表解析。
+
+例如复制一个列表时，使用：L1=list（L）即可，不必使用：
+
+L1=[x for x in L]
+3. 当序列过长， 而每次只需要获取一个元素时，使用生成器表达式。
+
+4. 列表解析的性能相比要比map要好，实现相同功能的for循环效率最差（和列表解析相比差两倍）。
+
+5. 列表解析可以转换为 for循环或者使用map（其中可能会用到filter、lambda函数）表达式，但是列表解析更为简单明了，后者会带来更复杂和深层的嵌套。
+
+回顾：
+	文件对象
+		open('file','mode','bufsize')
+		read, readline, readlines, write, writelines,flush, seek, tell
+
+	模块：os
+		文件系统接口
+
+	模块：os.path
+
+	对象流式化，持久化：
+		pickle
+
+	文件是可迭代：iter(), __iter__()
+
+
+Python的正则表达式：
+	re:
+		.
+		[...]
+		[^...]
+		?
+		+
+		{m}
+		{m,n}
+		{0,n}
+		{m,}
+		^
+		$
+		pat1|pat2
+		(...)
+		\b
+		[0-9]: \d
+		[0-9a-zA-Z]: \w, \W
+		\s: 任意空白字符，[\n\t\f\v\r], \S
+		\nn: 
+
+		(*|+|?|{})?: 使用非贪婪模式
+
+	match对象：
+
+	re.search: 返回一个match对象
+		match对象的：
+			属性：
+				string
+				re
+				pos
+				endpos
+			方法:
+				group()
+				start()
+				end()
+	re.findall: 返回列表
+	re.sub: 返回替换后整个串
+	re.subn: 返回元组：替换后的串及替换次数
+
+	re.compile: 
+
+	思考：复制/etc/passwd到/tmp，如何替换/tmp/passwd中的/bin/bash为/BIN/BASH？
+
+
+hello world: 
+	(o(.)): group1 o 
+		group  
+
+	flags:
+		I或IGNORECASE：忽略字符大小写
+		M或MULTILINE:
+		A或ASCII：仅执行8位ASCII码匹配
+		U或UNICODE：
+
+
+
+函数：
+	名称
+
+	Python闭包：
+
+	def funcName(arg1, arg2, ...):
+
+	参数传递形式：
+		位置参数：从左向右
+		关键字参数：按关键名称匹配
+
+			混用上面两种方式时：所有位置参数，所有的关键字参数
+
+		定义函数时使用默认参数：有默认值的参数
+			混用有默认和无默认值的参数时，无默认值放前面
+
+		调用函数时使用可变参数要求：
+			定义函数时使用*：收集位置参数
+			定义函数时使用**: 收集关键字参数
+
+	练习：返回/etc/passwd中包含了/bin/bash字串的所有用户名为一个列表
+
+
+	回顾：
+		re
+			search, findall, finditer, sub, subn
+
+		function
+			()
+
+			def func_name(arg1,...):
+				func_suite
+
+	Python闭包：闭包叫lexical closure
+
+	函数中使用yield，会返回一个生成器对象。
+
+	装饰器：
+		1、装饰器本身是一个函数，用于装饰其它函数；
+		2、功能：增强被装饰函数的功能；
+
+		装饰器一般接受一个函数对象作为参数，以对其进行增强
+
+	递归：
+		递归需要边界条件，递归前进段和递归返回段；
+
+
+		10 * 9 * 8 * 7 * 6 * 5 * 4 * 3 * 2 *1
+
+		10 * 9
+
+		10 * （10-1）* （（10-1）-1）
+
+	协程：
+
+	函数的设计规范：
+		耦合性：
+			（1）通过参数接受输入，以及通过return产生输出以保证函数的独立性；
+			（2）尽量减少使用全局变量进行函数间通信；
+			(3) 不要在函数中修改可变类型的参数；
+			(4) 避免直接改变定义在另外一个模块中的变量；
+		聚合性：
+			(1) 每个函数都应该有一个单一的、统一的目标；
+			(2) 每个函数的功能都应该相对简单；
+
+	练习1：将/etc/passwd文件中的每一行都分隔为一个列表；
+
+	练习2：将任意文件按用户指定的分隔符把每一行都分隔为一个列表；
+
+	练习3：用折叠的方式(reduce)求阶乘；
+
+
+类：将同一种具体物事的共同特性抽象出来的表现
+	状态和转换这些状态的操作
+	数据：
+		变量：就是属性
+	方法：
+		函数：操作变量引用的数据的代码
+
+	面向对象编程的3原则：
+		封装、继承和多态
+
+	class class_name
+
+
+	printName, TestClass
+
+	__varname__(): 会Python解释器自动调用
+
+	a + b = a.__add__(b)
+
+	l1 = ['abce', 'xyz']
+
+	list.__init__()
+
+
+可调用对象：__call__()
+	函数
+		内置函数
+		自定义函数
+			def
+			lambda
+	类
+	类方法
+
+	函数的属性：
+		__doc__
+		__name__
+		__dict__
+		__code__
+		__globals__
+
+	方法的属性：
+		__doc__
+		__name__
+		__class__: 方法所属的类
+		__func__: 实现该方法的函数对象
+		__self__: 调用此方法的实例 
+
+	内置函数：
+		__doc__
+		__name__
+		__self__
+
+	类：
+		__doc__
+		__name__
+		__bases__
+		__dict__
+		__module__: 定义了当前类的模块名称
+
+	实例：
+		__class__
+		__dict__
+
+	对象都有特殊方法：
+		__init__, __new__, __del__
+		__dir__()
+		__add__()
+		__ge__()
+
+		a >= b
+		a.__ge__(b)
+
+re、函数、面向对象
+
+模块、异常、运行环境、mysqldb
+
+
+模块：
+	顶层文件
+	模块文件1
+	模块文件2
+
+
+a = 30
+def f1():
+    print
+
+
+setup.py中setup()中可用参数：
+
+    platforms: 平台列表
+    license: 许可证
+    py_modules: 各模块名称组成的列表，此些模块可能位于包的根目录下(modname)，也可能位于某子包目录中(subpkg1.modname)；
+    packages: 各子包名称的列表
+
+    大体分为两类：元数据信息和包中的内容列表
+
+python setup.py sdist
+
+	可以为sdist指定格式：--formats=
+		zip: zip file
+		gztar: tar.gz file
+		bztar: tar.bz2 file
+		ztar: tar.Z file
+		tar: tar file
+
+python setup.py bdist
+
+	要以为bdist指定的格式：--formats=
+		gztar: tar.gz file
+		ztar: tar.Z file
+		tar: tar file
+		zip: zip file
+		rpm: RPM Package
+		pkgtool: Solaris pkgtool
+		wininst: Windows上自解压的zip格式的包
+		msi: Microsoft Installer
+
+	bdist_dump: 
+	bdist_rpm:
+	bdist_wininst
+	bdist_msi	
+
+获取帮助的方式：
+	python setup.py --help
+	python setup.py --help-commands: 所有可以使用的命令，如build, install
+	python setup.py COMMAND --help: 获取特定命令的帮助
+	python setup.py COMMAND --help-formats：获取特定命令支持使用的格式
+
+
+pip, esay_install
+
+
+Python模块、包、打包
+
+	安装包：
+		python setup.py install
+
+		build and install:
+
+		python setup build: 
+			--build-base=/path/to/build_dir
+				lib, lib.platform
+
+		第三方模块的默认安装路径通常为：site-packages
+			/usr/local/python27/lib/python2.7/site-packages
+
+		自定义安装路径：
+			--user=
+
+			--prefix=
+			--exec-prefix=
+
+		深度定制：
+			--install-purelib=/path/to/python_lib
+			--install-platlib=/paht/to/plat_lib
+				--install-lib=/path/to/lib
+
+			--install-scripts=/path/to/bin
+				可执行文件的安装路径
+
+			--install-data=
+			--install-headers=
+
+			try:
+				try:
+				    try_suite
+				except 
+				except
+				else
+			finally
+
+	assert实现：手动触发异常
+		assert condition[,expression]
+
+		if __debug__:
+			if not condition:
+				raise AssertionError, expression
+
+
+	Python异常对象：
+		BaseException:
+
+	raise触发异常
+
+		assert 断言
+
+	try-except
+	try:
+
+	except 
+
+	except ()
+
+	except BaseException
+
+	esle
+
+
+	try-finally
+
+	try-except-else-finally
+
+	try:
+		try-except-else
+	finally:
+
+
+	execute()
+	executemany()
+
+	
+	improt MySQLdb as mysql
+	
+	建立连接：
+		conn = mysql.connect(host='',user='',passwd='',db='')
+
+	创建游标：
+		cur = conn.cursor()
+
+	发送查询：
+		sqlstatement = 'sql statement'
+		cur.execute(sqlstatement)
+		cur.executemany(sqlstatement)
+
+	获取数据：
+		cur.execute('select statement')
+		cur.fetchone()
+		cur.fetchmany(N)
+		cur.fetchall()
+
+		fetchall():
+			result = cur.fetchall()
+
+	关闭：
+		cur.close()
+		conn.close()
+
+	
+	练习：把/etc/passwd文件中的内容的每一行存储在MariaDB的表中；
+
+
+	socket.socket(family,type)
+
+		family
+			AF_INET:
+			AF_UNIX:
+		type:
+			SOCK_STREAM: tcp
+			SOCK_DGRAM: udp
+
+		tcpconn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+	第二步：绑定地址
+		使用套接字对象的bind方法绑定于某地址和端口
+
+		tcpconn.bind(('ip',port))
+
+		tcpconn.bind(('172.16.100.6', 8023))
+
+	第三步：使用listen方法进行监听状态
+
+		tcpconn.listen(backlog)
+
+		tcpconn.listen(100)
+
+	第四步：循环监听状态
+		使用套接字对象的accept方法接收用户请求，
+
+
+	编写客户端程序：
+		第一步：创建一个socket对象，以连接服务器端：
+			clientsock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+
+		第二步：连接至服务器：
+			clientsock.connet(('server_ip',server_port))
+
+			clientsock.connect(('172.16.100.7',8023))
+
+		第三步：发送请求：
+			clientsock.send()
+
+
+
+服务器端：
+import socket
+s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+sa = ('172.16.100.7', 8023)
+s.bind(sa)
+s.listen(20)
+while True:
+    cinfo, caddr = s.accept()
+    print "Got a connection from %s" %caddr[0]
+    data = cinfo.recv(1024)
+    print "Receive data: %s" % data
+    cinfo.send("echo: " + data)
+    cinfo.close()
+
+客户端：
+import socket
+c = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+saddr = ('172.16.100.7', 8023)
+c.connect(saddr)
+c.send('hello server')
+data = c.recv(1024)
+print "Reply from server %s" % data
+
+
+
+Web框架：
+	Django
+	Flask
+	Web2py
+	TuborGears
+
+5000pv: 24小时，12小时并发
+	10动态：5000*10*10000/(12*3600) = 11574/s
+	50静态: 5000*50*10000/(12*3600) = 57870/s
+
+并发峰值通常为平均值的5-10倍
+	10 * 11574 = 11W/s
+
+	10k * (11574+57870) * 10 
+
+	5000 * 60 * 10240 * 10000 * 10 / 12 /3600 /1024/1024/1024
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

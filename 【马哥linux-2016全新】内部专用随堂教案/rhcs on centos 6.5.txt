@@ -1,0 +1,24 @@
+
+
+
+注意：如果启用了epel源，其会通过epel安装Luci依赖的rpm包，这会被rhcs认为是不安全的。因此，安装luci时要禁用epel源。
+
+
+[root@www.magedu.com rhcs]# service luci start
+Unable to create the luci base configuration file (`/var/lib/luci/etc/luci.ini').
+Starting saslauthd:                                        [  OK  ]
+Start luci...                                              [FAILED]
+
+解决办法：
+# touch /var/lib/luci/etc/luci.ini
+
+[root@www.magedu.com rhcs]# service luci start
+Unable to create the luci database file (`/var/lib/luci/data/luci.db').
+Start luci...                                              [FAILED]
+
+解决办法：
+# touch /var/lib/luci/data/luci.db
+
+
+
+

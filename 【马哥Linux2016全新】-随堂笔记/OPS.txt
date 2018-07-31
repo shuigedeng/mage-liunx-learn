@@ -1,0 +1,306 @@
+
+DHCP:
+	
+	DHCP: Dynamic Host Configuration Protocol
+		IP/Netmask
+		Gateway
+		DNS Server
+
+	bootp: boot protocol --> dhcp
+		租约：
+			2hours:
+				50%: 1hours --> 2hours
+					50%：1hours --> 2hours
+						75%: 0.5hours --> 2hours
+							87.5%: 0.25hours --> 2hours
+
+				dhcp discover
+
+
+		1、Client: dhcp discover：发现
+		2、Server: dhcp offer：(IP/netmask, gw)
+		3、Client：dhcp request
+		4、Server: dhcp ack
+
+		续租：
+			Client: dhcp request
+			Server: dhcp ack
+
+			Server: dhcp nak
+
+		Linux DHCP协议的实现程序：dhcp, dnsmasq
+
+		dhcp:
+			/usr/sbin/dhcpd
+				/etc/dhcp/dhcpd.conf --> /etc/rc.d/init.d/dhcpd
+				/etc/dhcp/dhcpd6.conf --> /etc/rc.d/init.d/dhcpd6
+			/usr/sbin/dhcrelay
+				/etc/rc.d/init.d/dhcrelay
+
+			67/udp
+			dhclient: 68/udp
+
+		dhcpd.conf:
+			subnet {
+				...
+			}
+
+			host {
+
+			}
+
+		~]# cat /var/lib/dhcpd/dhcpd.leases
+			地址分配记录
+
+		其它配置选项：
+			filename: 指明引导文件名称；
+			next-server：提供引导文件的服务器IP地址；
+
+			filename "pxelinux.0";
+			next-server 172.16.100.67;
+
+	PXE：preboot execute environment, Intel
+		dhcp, tftp, file server(yum repository)
+
+	CentOS 6 PXE: 
+		yum -y install syslinux tftp-server
+
+		cp /usr/share/syslinux/pxelinux.0 /var/lib/tftpboot/
+		cp /media/cdrom/images/pxelinux/{vmlinuz,initrd.img} /var/lib/tftp/boot/
+		cp /media/cdrom/isolinux/{boot.cfg,vesamenu.c32,splash.png} /var/lib/tftp/boot/
+		mkdir /var/lib/tftpboot/pxelinux.cfg/
+		cp /media/cdrom/isolinux/isolinux.cfg /var/lib/tftpboot/pxelinux.cfg/default/
+
+
+	CentOS 7 PXE:
+		yum -y install syslinux tftp-server
+
+		cp /usr/share/syslinux/pxelinux.0 /var/lib/tftpboot/
+		cp /media/cdrom/images/pxelinux/{vmlinuz,initrd.img} /var/lib/tftp/boot/
+		cp /usr/share/syslinux/{chain.c32,mboot.c32,menu.c32,memdisk} /var/lib/tftpboot/
+		mkdir /var/lib/tftpboot/pxelinux.cfg/
+		
+		创建/var/lib/tftpboot/pxelinux.cfg/default
+			内容类似如下：
+
+			default menu.c32
+			  prompt 5
+			  timeout 30
+			  MENU TITLE CentOS 7 PXE Menu
+
+			  LABEL linux
+			  MENU LABEL Install CentOS 7 x86_64
+			  KERNEL vmlinuz
+			  APPEND initrd=initrd.img inst.repo=http://172.16.100.67/centos7 ks=http://172.16.100.67/centos7.cfg		
+
+Ansible：
+	
+	运维工作：系统安装（物理机、虚拟机）--> 程序包安装、配置、服务启动 --> 批量操作 --> 程序发布  --> 监控
+
+	OS Provisioning：
+		物理机：PXE、Cobbler
+		虚拟机：Image Templates
+	Configration:
+		puppet (ruby)
+		saltstack (python)
+		chef
+		cfengine
+	Command and Control:
+		fabric
+
+	预发布验正：
+		新版本的代码先发布到服务器（跟线上环境配置完全相同，只是未接入到调度器）；
+
+	程序发布：
+		不能影响用户体验；
+		系统不能停机；
+		不能导致系统故障或造成系统完全不可用；
+
+	灰度发布：
+		发布路径：
+			/webapp/tuangou-1.1
+			/web/app/tuangou
+			/webapp/tuangou-1.2
+
+		在调度器上下线一批主机(maintanance) --> 关闭服务 --> 部署新版本的应用程序 --> 启动服务 --> 在调度器上启用这一批服务器；
+
+		自动化灰度发布：脚本、发布平台；
+
+	运维工具的分类:
+		agent: puppet, func
+		agentless: ansible, fabric
+			ssh
+
+	ansible:
+		模块化，调用特定的模块，完成特定的任务；
+		基于Python语言实现，由Paramiko、PyYAML和Jinja2三个关键模块；
+		部署简单，agentless；
+		主从模式
+		支持自定义模块
+		支持Playbook
+
+		幂等性：
+
+		配置文件：
+			/etc/ansible/ansible.cfg
+			/etc/ansible/hosts
+
+		http://172.16.0.1/centos7.cfg
+
+回顾：pxe, ansible
+
+	pxe: 
+		网卡支持网络引导；
+		dhcp, filename, next-server
+		tftp-server
+			pxelinux.0
+			vmlinuz, initrd.img
+			menu.c32
+			pxelinux.cfg/default
+
+		system-config-kickstart
+		ksvalidator
+
+	ansible:
+		os provision:
+			物理机：pxe, cobbler
+			虚拟机：image file template			
+		configuration:
+			程序包管理、用户管理、配置文件、服务管理、cron任务等等；
+			puppet, saltstack, chef, cfengine
+		task exec
+			command and control
+			func, fabric
+
+		程序发布：灰度模型
+
+	agent
+	agentless:
+		ssh服务；
+
+ansible：
+	
+	ansible <host-pattern> [-f forks] [-m module_name] [-a args]	
+		args:
+			key=value
+
+			注意：command模块要执行命令无须为key=value格式，而是直接给出要执行的命令即可；
+
+		常用模块：
+			command
+				-a 'COMMAND'	
+			user
+				-a 'name= state={present|absent} system= uid='
+
+			group
+				-a 'name= gid= state= system='
+
+			cron
+				-a 'name= minute= hour= day= month= weekday= job= user= state='
+
+			copy
+				-a 'dest= src= mode= owner= group='
+
+			file
+				-a 'path= mode= owner= group= state={directory|link|present|absent} src='
+
+			ping
+				没有参数
+
+			yum
+				-a 'name= state={present|latest|absent}'
+
+			service
+				-a 'name= state={started|stopped|restarted} enabled='
+
+			shell
+				-a 'COMMAND'
+
+			script
+				-a '/path/to/script'
+
+			setup
+
+	playbook的核心元素：
+		tasks: 任务
+		variables: 变量
+		templates: 模板
+		handlers: 处理器
+		roles: 角色
+
+	变量：
+		facts
+		--extra-vars "name=value name=value"
+		role定义
+		Inventory中的变量：
+			主机变量
+				hostname name=value name=value
+			组变量
+				[groupname:vars]
+				name=value
+				name=value
+
+	Inventory的高级用法：
+
+	Playbook：
+
+		- host: 
+		  vars:
+		  remote_user: 
+		  tasks:
+		  	-
+		  	-
+		  	-
+		  variables:
+		  	-
+		  	-
+		  	-
+		  handlers:
+		  	-
+		  	-
+
+		- host: 
+
+		- host: 
+
+	"ansible_distribution_major_version": "7", 
+
+	nginx.conf
+		worker_processes {{ ansible_processor_cores * ansible_processor_count - 1 }};
+
+	实战：用ansible playbook完成配置keepalived的集群；
+	博客：ansible的用法；
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

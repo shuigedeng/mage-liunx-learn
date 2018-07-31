@@ -1,0 +1,2308 @@
+
+
+nginx
+	
+	web服务器：http协议
+	
+	http协议: html, 文本, MIME
+		major/minor: text/plain, text/html, image/jpeg
+		
+		web资源：URL (scheme://server:port/path/to/source)
+		
+		方法：GET, HEAD, POST, (WEBDAV) PUT, DELETE, TRACE, OPTIONS
+		
+		http事务：request <----> response
+			request:
+				<method> <URL> <version>
+				<HEADERS>
+				
+				<body>
+				
+			response:
+				<version> <status> <reason phrase>
+				<HEADERS>
+				
+				<body>
+				
+			status: 
+				1xx: 信息类
+				2xx: 成功类，200
+				3xx: 重定向，301, 302, 304
+				4xx: 客户端类错误，403, 401, 404
+				5xx: 服务端类错误，502
+				
+		页面：多个资源
+			请求资源：是入口
+				HREF:80, 40
+			
+		认证：
+			基于IP
+			基于用户
+				basic
+				digest
+			
+		httpd: MPM
+			prefork, worker, event
+			
+		I/O类型：
+			同步和异步：synchronous, asyncrhonous
+				关注的是消息通知机制
+				
+				同步：调用发出不会立即返回，但一旦返回就可以返回最终结果；
+				异步：调用发出之后，被调用方立即返回消息，但返回的非最终结果；被调用者通过状态、通知机制来通知调者，或通过回调函数来处理结果；
+			
+			阻塞和非阻塞：block, nonblock
+				关注的是调用等等调用结果（消息、返回值）时的状态
+				
+				阻塞：调用结果返回之前，调用者（调用线程）会被挂起；调用者只有在得到结果之后才会返回；
+				非阻塞：调用结果返回之前，调用不会阻塞当前线程；
+				
+		5种I/O模型：
+			blocking IO
+			nonblocking IO
+			IO multiplexing
+			signal driven IO
+			asyncrhonous IO
+			
+		一个read操作：
+			(1) 等等数据准备好；
+			(2) 从内核向进程复制数据；
+			
+			select(),     poll()
+			
+			水平触发，边缘触发 
+			
+	Igor Sysoev, Rambler Media
+		engine X, Tengine(taobao)
+		
+		libevent: epoll
+		
+	Nginx的特性：
+		模块化设计、较好扩展性
+		高可靠性
+			master-->worker
+		低内存消耗
+			10000个keep-alive连接在Nginx仅消耗2.5MB
+		支持热部署
+			不停机而更新配置文件、更换日志文件、更新服务器程序版本
+		
+	基本功能：
+		静态资源的web服务器，能缓存打开的文件 描述符
+		http, smtp, pop3协议的反向代理服务器，缓存、负载均衡；
+		支持FastCGI (fpm)
+		模块化，非DSO机制，过滤器zip，SSI及图像大小调整；
+		支持SSL
+		
+	扩展功能：
+		基于名称和IP的虚拟主机；
+		支持keepalive
+		支持平滑升级
+		定制访问日志 ，支持使用日志缓冲区提高日志存储性能
+		支持url rewrite
+		支持路径别名
+		支持基于IP及用户的访问控制
+		支持速率限制，支持并发数限制
+		
+	Nginx的基本架构：
+		一个master进程，生成一个或多个worker
+		事件驱动： epoll, kqueue, /dev/poll (event ports)
+			消息通知：select, poll, rt signals
+		支持sendfile, sendfile64
+		支持AIO
+		支持mmap
+		
+	nginx: 非阻塞、事件驱动、一个master生成一个或多个worker, 每个worker响应n个请求；
+	
+	模块类型：
+		核心模块
+		Standard HTTP modules
+		Optional HTTP modules
+		Mail modules
+		 3rd party modules
+		 
+	安装方法：
+		rpm及源码安装：
+		# ./configure --prefix=/usr/local/nginx --conf-path=/etc/nginx/nginx.conf --user=nginx --group=nginx --error-log-path=/var/log/nginx/error.log --http-log-path=/var/log/nginx/access.log --pid-path=/var/run/nginx/nginx.pid --lock-path=/var/lock/nginx.lock --with-http_ssl_module --with-http_stub_status_module --with-http_gzip_static_module --with-http_flv_module --with-http_mp4_module --http-client-body-temp-path=/var/tmp/nginx/client --http-proxy-temp-path=/var/tmp/nginx/proxy --http-fastcgi-temp-path=/var/tmp/nginx/fastcgi
+		# make && make install
+		
+		Tmalloc, gperftools
+		
+	配置文件：
+		main配置段
+		http {
+		}
+		
+		配置指令要以分号结尾，语法格式：
+			directive value1 [value2...];
+			
+		支持使用变量：
+			模块内置变量
+			自定义变量
+				set var_name value
+				
+		主配置段的指令的类别：
+			用于调试、定位问题
+			正常运行必备的配置
+			优化性能的配置
+			事件相关的配置
+			
+		正常运行的必备配置：
+			1、user USERNAME [GROUPNAME];
+				指定运行worker进程的用户 和组，例如：
+				user nginx nginx;s
+				
+			2、pid /path/to/pid_file；
+				指定nginx的pid文件；
+				
+			3、worker_rlimit_nofile #;
+				指定一个worker进程所能够打开的最大文件句柄数；
+				
+			4、worker_rlimit_sigpending #;
+				指定每个用户能够发往worker的信号的数量；
+				
+		优化性能相关的配置：
+			1、worker_processes #:
+				worker线程的个数；通常应该为物理CPU核心个数减1；
+				
+			2、worker_cpu_affinity cpumask ...;
+				绑定worker进程至指定的CPU上；
+					CPUMASK
+						0001
+						0010
+						0100
+						1000 
+					例如：
+						worker_cpu_affinity 00000001 00000010 00000100;
+						
+			3、timer_resolution t;
+				gettimeofday(); 
+				
+			4、worker_priority nice;
+				-20, 19
+				
+		事件相关的配置：
+			1、accept_mutex [on|off]
+				内部调用用户 请求至各worker时用的负载均衡锁；打开时表示能让多个worker轮流地、序列化地与响应新请求；
+				
+			2、lock_file /path/to/lock_file; 
+			
+			3、accept_mutex_delay #ms;
+				
+			4、use [epoll|rgsig|select|poll];
+				定义使用的事件模型；建议让Nginx自动选择；
+				
+			5、worker_connections #;
+				每个worker进程所能够响应的最大并发请求数；
+				
+		用于调试、定位问题：
+			1、daemon [off|on]
+				是否以守护进程方式启动nginx；
+				
+			2、master_process on|off;
+				是否以master/worker模型来运行nginx; 
+				
+			3、error_log /path/to/error_log level;
+				错误日志文件及其级别；出于调试的目的，可以使用debug级别，但此级别只有在编译nginx时使用了--with-debug选项才有效；
+				
+回顾：IO模型、nginx
+	
+	IO模型：
+		阻塞
+		非阻塞
+		IO复用 (select, poll)
+		信号驱动的IO (epoll)
+		AIO 
+		
+		httpd: MPM
+			prefork 
+			worker
+			event
+			
+		nginx: 
+			epoll, aio, mmap
+			
+		master/workers
+		
+	nginx: 
+		worker_processes
+		worker_connections
+		worker_cpu_affinity
+		worker_priority 
+		
+nginx：
+	main配置段
+	http {
+	}
+	
+	http配置：http core 配置一个静态web服务器
+		ngx_http_core_module
+		
+		配置框架：
+		http {
+			upstream {
+				.,..
+			}
+			
+			server {
+				listen IP:PORT;
+				# 虚拟主机
+				location /URL {
+					if ...{
+						...
+					}
+					root "/path/to/somewhere";
+					...
+				}
+			}
+			server {
+				,,.
+			}
+		}
+		
+			注意：与http配置相关的指令必须放在http、server、location、upstream、if块中；
+			
+		虚拟主机相关的配置：
+			1、server {}
+				定义一个虚拟主机；
+				
+			2、listen
+				监听的端口
+				完整格式 ：listen address[:port] [default_server] [ssl] [spdy] [proxy_protocol] [setfib=number] [fastopen=number] [backlog=number] [rcvbuf=size] [sndbuf=size] [accept_filter=filter] [deferred] [bind] [ipv6only=on|off] [so_keepalive=on|off|[keepidle]:[keepintvl]:[keepcnt]];
+				
+				listen address[:port] [default_server] ssl 
+				
+				backlog=number: 指明TCP协议backlog队列的大小。默认为-1，表示不设置；
+				rcvbuf=size：设定监听句柄的SO_RCVBUF参数；
+				
+				例如：
+					listen 172.16.100.8:8080
+					
+			3、server_name name [...];
+				后可跟多个主机名；名称还可以使用通配符和正则表达式（~）；
+					
+				(1) 先做精确匹配；www.magedu.com: 
+				(2) 左侧通配符匹配，例如：*.magedu.com; 
+				(3) 右侧通配符匹配，例如：www.*；
+				(4) 正则表达式匹配，例如： ～^.*\.magedu\.com$
+				(5) default_server
+				
+			4、location [=|~|~*|^~] /uri {...}
+				location @name
+				功能：允许根据用户请求的URI来匹配定义的各location，匹配到时，此请求将被相应的location块中的配置所处理；
+				
+					=: 精确匹配检查；
+					~: 正则表达式模式匹配，区分字符大小写；
+					~*：正则表达式模式 匹配，不区分字符大小写；
+					^~：URI的前半部分匹配，不检查正则表达式；
+					
+				匹配优先级：精确匹配(=)、^~、~和~*、由不带符号的URL进行左侧匹配；
+					
+			5、root
+				设置web资源路径映射；用于指明请求的URL所对应的文档的根目录路径；
+				
+				location /images/ {
+					root "/web/imgs/";
+				}
+				
+			6、alias path
+				用于location配置段，定义路径别名 
+				
+				location /images/ {
+					alias /www/pictures/;
+				}
+				
+				注意：root表示指明路径为对应location的“ /” URL；alias表示路径映射，即location中的URL是相对于alias所指明的路径而言；
+				
+			7、index file
+				默认主页面
+					index index.html; 
+					
+			8、error_page code [...] [=code] URI | @name
+				根据http状态码重定向错误页面
+				error_page  404   /404.html
+				
+				=[code]: 以指定的响应码进行响应；省略code表示以新资源的响应码为响应码；
+				
+			9、try_files
+				try_files path1[,path2,...] URI 
+				
+		网络连接相关的配置：
+			1、keepalive_timeout time;
+				保持连接的超时时长，默认为75s；
+				
+			2、keepalive_requests #;
+				在一次保持连接上允许承载最大资源请求数；
+				
+			3、keepalive_disable [msie6|safari|none]
+				为指定类型的浏览器禁用长连接；
+				
+			4、tcp_nodelay on|off
+				对长连接是否使用TCP_NODELAY选项；
+				
+			5、client_header_timeout time;
+				读取http请求报文首部的超时时长；
+				
+			6、client_body_timeout time;
+				读取http请求报文body部分的超时时长；
+				
+			7、send_timeout time；
+				发送响应报文的超时时长；
+				
+		对客户端请求进行限制：
+			1、limit_except METHOD {...}
+				指定对范围之外的其它方法的访问控制；
+				
+				limit_except GET {
+					allow 172.16.0.0/16;
+					deny all;
+				}
+				
+			2、client_body_max_size SIZE;
+				限制请求报文中body部分的上限；通过检测请求报文首部中的"Content_Length"来判定；
+				
+			3、limit_rate speed;	
+				限制客户端每秒种传输的字节数，默认为0,表示无限制；
+				
+		对内存或磁盘资源进行分配
+			1、client_body_in_file_only on|clean|off;
+				请求报文的body部分是否可暂存于磁盘；on表示允许，并且即使请求结束，也不会删除暂存的内容；clean表示会删除；off不允许暂存； 
+				
+			2、client_body_in_single_buffer on|off 
+				
+			3、client_body_buffer_size size;
+			
+			4、client_body_temp_path DIR [level1 [level2 [level3 [level4]]]]
+				
+				例如：client_body_temp_path /var/tmp/nginx/client  1 2
+				
+			5、client_header_buffer_size size:
+			
+		MIME类型相关的配置：
+			
+			1、types {}
+				定义MIME types至文件的扩展名；
+					types {
+						text/html .html;
+						image/jpeg  .jpg;
+					}
+					
+			2、default_type MIME-TYPE;
+			
+		文件操作优化相关的配置：
+			1、sendfile on|off; 
+			
+			2、aio on|off;
+			
+			3、directio size|off;
+				是否使用O_DIRECT选项去请求读取文件；与sendfile功能互斥；
+				
+			4、open_file_cache max=N[inactive=time] | off;
+				nginx可以缓存以下三种信息：
+					(1) 文件句柄、文件大小和最近一次修改时间；
+					(2) 打开目录的目录结构；
+					(3) 没有找到的或者没有权限操作的文件的相关信息；
+					
+				max=N表示可缓存的最大条目上限；一旦到达上限，则会使用LRU从缓存中删除最近最少使用的条目；
+				
+				inactive=time: 在inactive指定的时长内没有被访问过的缓存条目就会淘汰；
+				
+			5、open_file_cache_errors on|off;
+				是否缓存在文件缓存中缓存打开文件时出现找不到路径，没有权限等的错误信息；
+				
+			6、open_file_cache_min_uses time;
+				每隔多久检查一次缓存中缓存条目的有效性；默认60s;
+				
+		重点关注：server{}, location{}, listen, server_name, root, alias, keepalive_timeout, keepalive_requests, error_page
+		
+	基于IP的访问控制：
+		http, server, location
+			allow, deny
+			
+	基于用户的basic认证配置：
+		auth_basic
+		auth_basic_user_file 
+			htpasswd命令创建用户账号文件；
+			
+	基于gzip实现响应报文压缩：
+		
+	定制响应首部
+		add_header name value [always];
+		expires
+		
+	定制访问日志
+		log_format
+		access_log 
+		
+			定制出与httpd的combined格式相同的日志内容；
+			
+	定义合法引用：
+		valid_referers none | blocked | server_names | string ...;
+		if ($invalid_referer) {
+			return 403
+		}
+		
+	URL rewrite:
+		rewrite regex replacement [flag];
+			last
+			break
+			redirect
+			permanent
+		
+		if (condition) {
+			...
+		}
+		
+			比较表达式：
+				=：
+				!=
+				~
+				~*
+				!~
+				!~*
+				-f, !-f
+				-d, !-d
+				-e, !-e
+				-x, !-x
+				
+		return:
+			return code URL 
+		
+		set $variable value
+		
+	总结：nginx
+		主配置
+		http
+			core: server{}, location{},
+			access
+			basic
+			gzip 
+			ssl 
+			rewrite
+			log 
+			referer 
+			stub_status 
+			headers 
+			
+		博客：nginx
+		
+LB Cluster: 	
+	提升系统容量的方式：	
+		scale up: 
+		scale out: 
+		
+	session保持方法：
+		session绑定：sh
+		session复制：
+		session服务器：memcached, redis （key-value, kv store）
+		
+	I/O：
+		同步/异步：
+		阻塞/非阻塞：
+		
+		libevent: 项目
+			epoll()
+			
+	Nginx的配置：
+		main, event, http
+		
+		http {
+			directive
+			server {
+				listen
+				server_name
+				location {
+					if {
+					}
+				}
+			}
+			server {
+			}
+		}
+		
+	ngx_http_proxy_module模块：
+		server {
+			listen
+			server_name
+			location / {
+				proxy_pass http://192.16.3.7:80/;
+			}
+		}
+		
+		格式：
+			location  /uri {
+				rewrite 
+				proxy_pass http://back_server:port/newuri;
+			}
+			
+			/uri --> /newuri
+		
+		http://www.magedu.com
+		http://mysql.magedu.com
+		
+	proxy_connect_timeout: 
+	proxy_hide_header: 
+	
+	upstream
+		
+	
+回顾：nginx
+	ngx_http_proxy_module,  ngx_http_upstream_module
+	
+	ngx_http_proxy_module：实现反向代理及缓存功能
+		proxy_pass http://{SERVER_IP|UPSTREAM_NAME}/uri
+		
+		proxy_cache_path path [levels=levels] keys_zone=name:size [inactive=time] [max_size=size] ;
+		
+		proxy_cache zone_name;
+		
+		proxy_cache_valid [code] time; 
+		proxy_cache_method
+		proxy_cache_use_stale error timeout ...
+		proxy_cache_min_uses
+		
+		proxy_cache_bypass string: 设置在何种情形下nginx将不从cache取数据的；
+			$cookie_nocache $arg_nocache  $http_authorization
+			
+		proxy_set_header
+		
+	ngx_http_upstream_module:
+		定义服务器组
+			proxy_pass, fastcgi_pass, uwsgi_pass, 
+			
+		upstream name {
+			server address [parameters];
+			ip_hash;
+		}
+		
+nginx(2)
+	
+	SNAT模式的大量Client
+		
+		基于sticky实现session绑定：
+			cookie
+			route
+			learn ()
+			
+	least_conn: 调度方法，最少连接；
+	
+	health_check;
+		建议：关闭访问日志；
+		
+	自定义响应首部：
+		add_header X-Via $server_addr;
+		add_header X-Cache $upstream_cache_status;
+		
+	LNMP
+		fpm
+		
+	编辑/etc/nginx/fastcgi_params，将其内容更改为如下内容：
+		fastcgi_param  GATEWAY_INTERFACE  CGI/1.1;
+		fastcgi_param  SERVER_SOFTWARE    nginx;
+		fastcgi_param  QUERY_STRING       $query_string;
+		fastcgi_param  REQUEST_METHOD     $request_method;
+		fastcgi_param  CONTENT_TYPE       $content_type;
+		fastcgi_param  CONTENT_LENGTH     $content_length;
+		fastcgi_param  SCRIPT_FILENAME    $document_root$fastcgi_script_name;
+		fastcgi_param  SCRIPT_NAME        $fastcgi_script_name;
+		fastcgi_param  REQUEST_URI        $request_uri;
+		fastcgi_param  DOCUMENT_URI       $document_uri;
+		fastcgi_param  DOCUMENT_ROOT      $document_root;
+		fastcgi_param  SERVER_PROTOCOL    $server_protocol;
+		fastcgi_param  REMOTE_ADDR        $remote_addr;
+		fastcgi_param  REMOTE_PORT        $remote_port;
+		fastcgi_param  SERVER_ADDR        $server_addr;
+		fastcgi_param  SERVER_PORT        $server_port;
+		fastcgi_param  SERVER_NAME        $server_name;
+				
+	
+	LNAMP
+	
+	LNMP, fastcgi_cache
+	
+	
+	练习：	
+		(1) root为同一路径；
+		(2) root为不同的路径；
+			location \.php$ {
+				root /web/app/wp;
+			}
+			
+			location / {
+				root /web/htdocs;
+			}
+			
+			如何解决问题？
+		
+		(3) fpm server为另一主机；
+			location \.php$ {
+				fastcgi_pass fastcgi://172.16.100.9:9000;
+			}
+			
+			location / {
+				root /web/htdocs;
+			}
+						
+	总结：
+		cache:
+			proxy_cache
+			fastcgi_cache
+			
+	练习：
+		使用nginx反向代理（rr调度）用户请求至两个以上的后端LAMP（按标准路径部署的有pma）；
+		(1) 手动更新所有节点上的pma至新版本；
+		(2) 写脚本实现如上过程；
+
+		
+回顾：nginx upstream, fastcgi
+	upstream name {
+		server  
+		server 
+		
+	}
+	wrr
+	ip_hash|least_conn|sticky
+	
+	fastcgi_pass fastcgi://
+	
+	LNMMP: Memcached
+	
+HAProxy: 
+	
+	
+
+
+
+	web arch: haproxy
+		mode: http, tcp (https, mysql)
+
+	HAProxy: 
+		代理(http): 掮客(broker)
+			正向代理：
+			反向代理：
+
+			代理作用：web缓存（加速）、反向代理、内容路由（根据流量及内容类型等将请求转发至特定服务器）、转码器；
+
+				在代理服务器上添加Via首部；
+
+			缓存的作用：
+				减少冗余内容传输；
+				节省带宽、缓解网络瓶颈；
+				降低了对原始服务器的请求压力；
+				降低了传输延迟；
+
+		HAProxy: 只是http协议的反向代理，不提供缓存功能；但额外支持对tcp层对基于tcp通信的应用做LB；
+
+			nginx：
+				server {
+
+				}
+
+				server {
+					location ~* \.php$ {
+						proxy_pass
+					}
+
+					location / {
+
+					}
+				}
+
+
+				upstream {
+					leastconn
+					server
+					server
+				}
+
+				upstream {
+
+				}
+
+			haproxy:
+				frontend
+					use_backend
+					default_backend
+				backend
+					balancer
+					server
+					server
+
+				listen: 
+					server
+				
+				default
+
+	配置文件：haproxy.cfg
+		全局配置
+		代理配置
+
+
+回顾：
+	HAProxy:
+		http协议反向代理
+		tcp层的LB
+
+		特性：event-driven, ebtree
+
+	配置：/etc/haproxy/haproxy.cfg
+		/usr/sbin/haproxy
+
+		CentOS 6: /etc/rc.d/init.d/haproxy
+		CentOS 7: haproxy.service
+
+		配置分为两段：
+			global
+				配置参数：log, maxconn, ...
+			proxies
+				defaults, frontend, backend, listen
+
+		示例：
+			frontend main *:80
+				default_backend websrvs
+
+			backend websrvs
+				balance roundrobin
+				server web1 172.16.100.68 check
+				server web2 172.16.100.69 check
+
+HAProxy(2)
+
+	代理参数：
+		balance: 指明调度算法；
+			动态：权重可动态调整
+			静态：调整权重不会实时生效
+
+			roundrobin: 轮询，动态算法，每个后端主机最多支持4128个连接；
+			static-rr: 轮询，静态算法，每个后端主机支持的数量无上限；
+			leastconn: 根据后端主机的负载数量进行调度；仅适用长连接的会话；动态；
+			source:
+				hash-type:
+					map-based：取模法；静态；
+					consistent：一致性哈希法；动态；
+			uri:
+				hash-type
+					map-based:
+					consistent:
+			url_param: 根据url中的指定的参数的值进行调度；把值做hash计算，并除以总权重；
+				hash-type
+					map-based:
+					consistent:
+			hdr(<name>)	：根据请求报文中指定的header(如use_agent, referer, hostname)进行调度；把指定的header的值做hash计算；
+				hash-type
+					map-based:
+					consistent:
+
+		bind：
+			只能用于frontend, listen; 
+
+		mode: 
+			HAProxy的工作模式；默认为tcp；
+				tcp, http, health
+
+		log:
+
+		maxconn:
+
+		default_backend: 
+			为frontend指明使用的默认后端；
+
+			use_backend: 条件式后端调用；
+
+
+			K.I.S.S: Keep it simple, stupid.
+
+		server:
+
+			server <name> <addr>[:port] [param*]
+				backup: 设定当前server为backup server；
+				check: 健康状态检测；
+					inter <delay>：检测时间间隔；单位为ms, 默认为2000; 
+					fall: up --> down, soft state, soft state, hard state; 
+					rise：down --> up, 
+				cookie <value>：
+				maxconn: 此服务接受的并发连接的最大数量；
+				maxqueue: 请求队列的最大长度；
+				observe: 根据流量判断后端server的健康状态；
+				weight: 指定权重，默认为1，最大为256；0表示不被调度；
+				redir <prefix>: 重定向；所有发往此服务器的请求均以302响应；
+
+			后端http服务时的健康状态的检测方法：
+				option httpchk
+
+		基于浏览器cookie实现session sticky：
+			backend websrvs
+			    balance     roundrobin
+			    cookie SERVERID insert nocache indirect
+			    server web1 172.16.100.68:80 check weight 1 cookie websrv1
+			    server web2 172.16.100.69:80 check weight 3 cookie websrv2
+
+			要点：
+				(1) 每个server有自己惟一的cookie标识；
+				(2) 在backend中定义为用户请求调度完成后操纵其cookie
+
+		启用stats：
+			listen statistics 
+			    bind *:9090
+			    stats enable
+			    stats hide-version
+			    #stats scope .
+			    stats uri /haproxyadmin?stats
+			    stats realm "HAPorxy\ Statistics"
+			    stats auth admin:mageedu
+			    stats admin if TRUE
+
+		向日志中记录额外信息：
+			capture request header
+			capture response header
+
+		当mode为http时，记录丰富的日志信息：
+			option httplog
+
+		错误页面重定向：
+			errorfile: 使用haproxy主机本地文件进行响应；
+			errorloc, errorloc302: 使用指定的url进行响应，响应状态码为302；不适用于GET以外的其它请求方法；
+			errorloc303：返回303状态码；
+
+	访问控制：
+		http_request
+		tcp_request
+
+	添加请求或响应报文首部：
+		reqadd
+		rspadd
+
+	ACL
+		定义，及调用；
+
+	作业：
+		1、基于cookie实现会话绑定；
+		2、基于uri实现调度；
+		3、基于hdr实现调度；
+		4、动静分离；
+			基于lamp部署discuz，而动静分离；
+		5、用keepalived高可用haproxy；
+	博客作业：以上所有内容；
+
+
+
+	补充：动静分离的示例：
+
+			frontend  main
+			    bind *:80
+			    bind *:8080
+			    acl url_static       path_beg       -i /static /images /javascript /stylesheets
+			    acl url_static       path_end       -i .jpg .gif .png .css .js
+
+			    use_backend static          if url_static
+			    default_backend             appsrvs
+
+			#---------------------------------------------------------------------
+			# static backend for serving up images, stylesheets and such
+			#---------------------------------------------------------------------
+			backend static
+			    balance roundrobin
+			    server static1 172.16.100.11 check
+			    server static2 172.16.100.12 check
+
+			backend appsrvs
+			    balance     roundrobin
+			    option forwardfor except 127.0.0.1 header X-Client
+			    option httpchk
+			    cookie SERVERID insert indirect nocache
+			    server  web1 172.16.100.7:80 check cookie web1
+			    server  web2 172.16.100.8:80 check cookie web2	
+
+
+
+回顾：
+	haproxy: 
+		tcp lb, http reverse proxy
+
+		配置：
+			global
+			proxies:
+				defaults
+				frontend
+				backend
+				listen
+
+				参数：bind, mode, cookie, balance, server, log, maxconn, use_backend, default_backend, acl
+
+			balance:
+				roundrobin, static-rr, leastconn, source, uri, url_param, hdr(HEADER)
+				hash-type:
+					map-based
+					consistent
+
+			acl:
+				acl <name> creterion flags operator value
+					path, path_beg, path_end, src, src_port, dst, dst_port, url_beg, url_end, url_reg, path_reg, hdr(HEADER)
+
+Web Cache
+
+	程序具有局部性：
+		时间局部性
+		空间局部性
+
+		key-value:
+			key: 访问路径，URL, hash
+			value：web content	
+
+		热点数据：	
+
+	命中率：hit/(hit+miss)	
+		文档命中率：从文档个数进行衡量；
+		字节命中率：从内容大小进行衡量；
+
+	注意：
+		缓存对象：生命周期；定期清理；
+		缓存空间耗尽：LRU（最近最少使用）
+		可缓存，不可缓存（用户私有数据）
+
+	缓存处理的步骤：
+		接收请求 --> 解析请求 （提取请求的URL及各种首部）--> 查询缓存 --> 新鲜度检测 --> 创建响应报文 --> 发送响应 --> 记录日志
+
+	新鲜度检测机制：
+		过期日期：
+			HTTP/1.0 Expires
+				Expires:Thu, 04 Jun 2015 23:38:18 GMT
+			HTTP/1.1 Cache-Control: max-age
+				Cache-Control:max-age=600
+
+		有效性再验正：revalidate
+			如果原始内容未改变，则仅响应首部（不附带body部分），响应码304 （Not Modified）
+			如果原始内容发生改变，则正常响应，响应码200；
+			如果原始内容消失，则响应404，此时缓存中的cache object也应该被删除；
+
+		条件式请求首部：
+			If-Modified-Since：基于请求内容的时间戳作验正；
+			If-Unmodified-Since
+			If-Match：
+			If-None-Match：
+				Etag: faiy89345
+
+
+	Cache-Control   = "Cache-Control" ":" 1#cache-directive
+	    cache-directive = cache-request-directive
+	         | cache-response-directive
+	    cache-request-directive =
+	           "no-cache"                          
+	         | "no-store" (backup)                          
+	         | "max-age" "=" delta-seconds         
+	         | "max-stale" [ "=" delta-seconds ]  
+	         | "min-fresh" "=" delta-seconds      
+	         | "no-transform"                      
+	         | "only-if-cached"                   
+	         | cache-extension                   
+	     cache-response-directive =
+	           "public"                               
+	         | "private" [ "=" <"> 1#field-name <"> ] 
+	         | "no-cache" [ "=" <"> 1#field-name <"> ]
+	         | "no-store"                            
+	         | "no-transform"                         
+	         | "must-revalidate"                     
+	         | "proxy-revalidate"                    
+	         | "max-age" "=" delta-seconds            
+	         | "s-maxage" "=" delta-seconds           
+	         | cache-extension 
+
+	常见的缓存服务开源解决方案：
+		varnish, squid   (类似nginx --> apache)
+		nginx, apache
+
+
+	Web Cache：
+		squid, varnish
+
+		https://www.varnish-cache.org
+
+		DSL: vcl
+
+		管理进程：编译VCL并应用新配置；监控vanish；初始化varnish；CLI接口；
+		Child/cache：
+			Acceptor：接收新的连接请求；
+			worker threads：处理用户请求；
+			Expiry：清理缓存中的过期对象；
+
+		日志：Shared Memory Log，共享内存日志大小默认一般为90MB，分为两部分，前一部分为计数器，后一部分请求相关的数据；
+
+		vcl: Varnish Configuration Language
+			缓存策略配置接口；
+			基于“域”的简单编程语言；
+
+		内存分配和回收：
+			malloc(), free()
+
+		varnish如何存储缓存对象：
+			file: 单个文件；不支持持久机制；
+			malloc: 内存；
+			persistent：基于文件的持久存储；
+
+		配置varnish的三种应用：
+			1、varnishd应用程序的命令行参数；
+				监听的socket, 使用的存储类型等等；额外的配置参数；
+					-p param=value 
+					-r param,param,... : 设定只读参数列表；
+
+					/etc/varnish/varnish.params
+
+			2、-p选项指明的参数：
+				运行时参数：
+					也可在程序运行中，通过其CLI进行配置；
+
+			3、vcl：配置缓存系统的缓存机制；
+				通过vcl配置文件进行配置；
+					先编译，后应用；
+						依赖于c编译器；
+
+		命令行工具：
+			varnishadm -S /etc/varnish/secret -T IP:PORT
+
+			Log:
+				varnishlog
+				varnishncsa
+
+			Statistics
+				varnishstat
+
+			Top：
+				varnishtop
+
+
+
+回顾：
+	http cache：
+		Expires：
+		Cache-Control:
+			max-age
+			s-maxage
+
+		Cache-Control:
+			no-cache
+			no-store
+			must-revalidate
+
+		条件式请求：
+			If-Modified-Since
+			If-None-Match
+
+	varnish:
+		v2, v3, v4
+
+		配置：
+			varnishd进程配置；命令行选项；/etc/varnish/varnish.params
+				-p
+			varnishd Child/cahce：实时参数
+				varnishadm
+					param.set
+			缓存功能配置：
+				vcl
+					/etc/varnish/default.vcl
+
+varnish(2)
+
+	vcl: 
+		state engine：各引擎之间存一定程度上的相关性；前一个engine如果可以有多种下游engine，则上游engine需要用return指明要转移的下游engine；
+			vcl_recv
+			vcl_hash
+			vcl_hit
+			vcl_miss
+			vcl_fetch
+			vcl_deliver
+			vcl_pipe
+			vcl_pass
+			vcl_error
+
+		编程语言语法：
+			(1) //, #, /* */ 用于注释；会被编译器忽略；
+			(2) sub $name: 用于定义子例程；
+				sub vcl_recv {
+
+				}
+			(3) 不支持循环；
+			(4) 有众多内置的变量，变量的可调用位置与state engine有密切相关性；
+			(5) 支持终止语句，return(action)；没有返回值；
+			(6) "域"专用；
+			(7) 操作符：=, ==, ~, !, &&, ||
+
+			条件判断语句：
+				if (CONDTION) {
+
+				} else {
+
+				}
+
+			变量赋值：set name=value
+				unset name
+
+				req.http.HEADER：调用request报文中http协议的指定的HEADER首部；
+					req.http.X-Forwarded-For
+					req.http.Auhtorization
+					req.http.cookie
+
+				req.request: 请求方法
+
+				client.ip: 客户端IP；
+
+			state engine workflow(v3):
+				vcl_recv --> vcl_hash --> vcl_hit --> vcl_deliver
+				vcl_recv --> vcl_hash --> vcl_miss --> vcl_fetch --> vcl_deliver
+				vcl_recv --> vcl_pass --> vcl_fetch --> vcl_deliver
+				vcl_recv --> vcl_pipe
+
+			state engine(v4)
+				vcl_recv
+				vcl_pass
+				vcl_pipe
+				vcl_hash
+				vcl_hit
+				vcl_miss
+
+				vcl_backend_fetch
+				vcl_backend_response
+				vcl_backend_error
+
+				vcl_purge
+				vcl_synth
+
+				https://www.varnish-software.com/book/4.0/chapters/VCL_Basics.html
+
+
+				sub vcl_recv {
+				    if (req.method == "PRI") {
+				        /* We do not support SPDY or HTTP/2.0 */
+				        return (synth(405));
+				    }
+
+				    if (req.method != "GET" &&
+				      req.method != "HEAD" &&
+				      req.method != "PUT" &&
+				      req.method != "POST" &&
+				      req.method != "TRACE" &&
+				      req.method != "OPTIONS" &&
+				      req.method != "DELETE") {
+				        /* Non-RFC2616 or CONNECT which is weird. */
+				        return (pipe);
+				    }
+
+				    if (req.method != "GET" && req.method != "HEAD") {
+				        /* We only deal with GET and HEAD by default */
+				        return (pass);
+				    }
+				    if (req.http.Authorization || req.http.Cookie) {
+				        /* Not cacheable by default */
+				        return (pass);
+				    }
+				    return (hash);
+				}				
+
+			
+			定义在vcl_deliver中，向响应给客户端的报文添加一个自定义首部X-Cache；
+			    if (obj.hits>0) {
+			        set resp.http.X-Cache = "HIT";
+			    } else {
+			        set resp.http.X-Cahce = "MISS";
+			    }
+
+		varnish中的内置变量：
+			变量种类：
+				client
+				server
+				req
+				resp
+				bereq
+				beresp
+				obj
+				storage
+
+				bereq
+					bereq.http.HEADERS: 由varnish发往backend server的请求报文的指定首部；
+					bereq.request：请求方法；
+					bereq.url：
+					bereq.proto：
+					bereq.backend：指明要调用的后端主机；
+
+				beresp
+					beresp.proto
+					beresp.status：后端服务器的响应的状态码
+					beresp.reason：原因短语；
+					beresp.backend.ip
+					beresp.backend.name
+					beresp.http.HEADER: 从backend server响应的报文的首部；
+					beresp.ttl：后端服务器响应的内容的余下的生存时长；
+
+				obj
+					obj.ttl: 对象的ttl值；
+					obj.hits：此对象从缓存中命中的次数；
+
+				server
+					server.ip
+					server.hostname
+
+				req
+
+				resp
+
+				官方文档：https://www.varnish-cache.org/docs/4.0/reference/vcl.html#varnish-configuration-language
+
+	支持虚拟主机：
+		
+		if (req.http.host == "www.magedu.com") {
+
+		}
+
+	强制对某资源的请求，不检查缓存；
+		/admin
+		/login
+
+		if (req.url ~ "(?i)^/login" || req.url ~ "(?i)^/admin") {
+			return(pass);
+		}
+
+	对特定类型的资源取消其私有的cookie标识，并强行设定其可以varnish缓存的时长：
+		vcl_backend_response
+		if (beresp.http.cache-control !~ "s-maxage") {
+			if (bereq.url ~ "(?i)\.jpg$") {
+				set beresp.ttl = 3600s;
+				unset beresp.http.Set-Cookie;
+			}
+			if (bereq.url ~ "(?i)\.css$") {
+				set beresp.ttl = 600s;
+				unset beresp.http.Set-Cookie;
+			} 
+		}
+
+	官方配置示例：https://www.varnish-cache.org/trac/wiki/VCLExamples
+
+	backend server的定义：
+		backend name {
+		    .attribute = "value";
+		}	
+
+		.host: BE主机的IP；
+		.port：BE主机监听的PORT；
+
+		.probe: 对BE做健康状态检测；
+		.max_connections：并连接最大数量；
+
+	后端主机的健康状态检测方式：
+		probe name {
+		     .attribute = "value";
+		}	
+
+		.url: 判定BE健康与否要请求的url; 
+		.expected_response：期望响应状态码；默认为200；
+
+		示例1：
+			backend websrv1 {
+			    .host = "172.16.100.68";
+			    .port = "80";
+			    .probe = {
+			        .url = "/test1.html";
+			    }
+			}
+
+			backend websrv2 {
+			    .host = "172.16.100.69";
+			    .port = "80";
+			    .probe = {
+			        .url = "/test1.html";
+			    }
+			}
+
+			sub vcl_recv {
+			    if (req.url ~ "(?i)\.(jpg|png|gif)$") {
+			        set req.backend_hint = websrv1;
+			    } else {
+			        set req.backend_hint = websrv2;
+			    }				
+			}
+
+		示例2：
+			import directors;
+
+			sub vcl_init {
+			    new mycluster = directors.round_robin();
+			    mycluster.add_backend(websrv1);
+			    mycluster.add_backend(websrv2);
+			}
+
+			vcl_recv {
+				set req.backend_hint = mycluster.backend();
+			}
+
+			负载均衡算法：
+				fallback, random, round_robin, hash
+
+	掌握：varnishlog, varnishncsa, varnishtop, varnishstat
+
+	作业：
+		vcl: backend, backend的调用，健康状态检测的定义，负载均衡的实现，根据资源类型不同完成分发，控制哪些内容不查或查询缓存；
+
+	博客作业：以上所有内容；
+
+
+	补充：
+		移除单个缓存对象
+
+			purge用于清理缓存中的某特定对象及其变种(variants)，因此，在有着明确要修剪的缓存对象时可以使用此种方式。HTTP协议的PURGE方法可以实现purge功能，不过，其仅能用于vcl_hit和vcl_miss中，它会释放内存工作并移除指定缓存对象的所有Vary:-变种，并等待下一个针对此内容的客户端请求到达时刷新此内容。另外，其一般要与return(restart)一起使用。下面是个在VCL中配置的示例。
+
+			acl purgers {
+				"127.0.0.1";
+				"192.168.0.0"/24;
+			}
+
+			sub vcl_recv {
+				if (req.request == "PURGE") {
+					if (!client.ip ~ purgers) {
+						error 405 "Method not allowed";
+					}
+					return (lookup);
+				}
+			}
+			sub vcl_hit {
+				if (req.request == "PURGE") {
+					purge;
+					error 200 "Purged";
+				}
+			}
+			sub vcl_miss {
+				if (req.request == "PURGE") {
+					purge;
+					error 404 "Not in cache";
+				}
+			}
+			sub vcl_pass {
+				if (req.request == "PURGE") {
+					error 502 "PURGE on a passed object";
+				}
+			}
+
+			客户端在发起HTTP请求时，只需要为所请求的URL使用PURGE方法即可，其命令使用方式如下：
+			# curl -I -X PURGE http://varniship/path/to/someurl
+
+
+	生产环境案例一则：
+
+		acl purge {
+		  "localhost";
+		  "127.0.0.1";
+		  "10.1.0.0"/16;
+		  "192.168.0.0"/16;
+		}
+
+		sub vcl_hash {
+		  hash_data(req.url);
+		  return (hash);
+		}
+
+		sub vcl_recv {
+		  set req.backend = shopweb;
+		#  set req.grace = 4h; 
+		  if (req.request == "PURGE") {
+		    if (!client.ip ~ purge) {
+		      error 405 "Not allowed.";
+		    }
+		    return(lookup);
+		  }
+		  if (req.request == "REPURGE") {
+		    if (!client.ip ~ purge) {
+		      error 405 "Not allowed.";
+		    }
+		    ban("req.http.host == " + req.http.host + " && req.url ~ " + req.url);
+		    error 200 "Ban OK";
+		  }
+		  if (req.restarts == 0) {
+		    if (req.http.x-forwarded-for) {
+		      set req.http.X-Forwarded-For = req.http.X-Forwarded-For + ", " + client.ip;
+		    } 
+		    else {
+		      set req.http.X-Forwarded-For = client.ip;
+		    }
+		  }
+		  if (req.request != "GET" &&
+		    req.request != "HEAD" &&
+		    req.request != "PUT" &&
+		    req.request != "POST" &&
+		    req.request != "TRACE" &&
+		    req.request != "OPTIONS" &&
+		    req.request != "DELETE") {
+		    /* Non-RFC2616 or CONNECT which is weird. */
+		    return (pipe);
+		  }
+		  if (req.request != "GET" && req.request != "HEAD") {
+		    /* We only deal with GET and HEAD by default */
+		    return (pass);
+		  }
+		  if (req.http.Authorization) {
+		    /* Not cacheable by default */
+		    return (pass);
+		  }
+		 
+
+		  if ( req.url == "/Heartbeat.html" ) {
+		    return (pipe);
+		  }
+		  if ( req.url == "/" ) {
+		    return (pipe);
+		  }
+		  if ( req.url == "/index.jsp" ) {
+		    return (pipe);
+		  }
+
+		  if (req.http.Cookie ~ "dper=") {
+		    return (pass);
+		  }
+		  if (req.http.Cookie ~ "sqltrace=") {
+		    return (pass);
+		  }
+		  if (req.http.Cookie ~ "errortrace=") {
+		    return (pass);
+		  }
+		#   if ( req.request == "GET" && req.url ~ "req.url ~ "^/shop/[0-9]+$" ) {
+		  if ( req.url ~ "^/shop/[0-9]+$" || req.url ~ "^/shop/[0-9]?.*" ) {
+		    return (lookup);
+		  }
+
+		 if ( req.url ~ "^/shop/(\d{1,})/editmember" || req.url ~ "^/shop/(\d{1,})/map" || req.url ~ "^/shop/(\d+)/dish-([^/]+)" ) {
+		    return (lookup);
+		  } 
+
+		  return (pass);
+		#   return (lookup);
+		}
+
+		sub vcl_pipe {
+		  return (pipe);
+		}
+
+		sub vcl_pass {
+		  return (pass);
+		}
+
+		sub vcl_hit {
+		  if (req.request == "PURGE") {
+		    purge;
+		    error 200 "Purged.";
+		  }
+		  return (deliver);
+		}
+
+		sub vcl_miss {
+		  if (req.request == "PURGE") {
+		    error 404 "Not in cache.";
+		  }
+		#   if (object needs ESI processing) {
+		#     unset bereq.http.accept-encoding;
+		#   }
+		  return (fetch);
+		}
+
+
+		sub vcl_fetch {
+		  set beresp.ttl = 3600s;
+		  set beresp.http.expires = beresp.ttl;
+		  #set beresp.grace = 4h;
+		#   if (object needs ESI processing) {
+		#     set beresp.do_esi = true;
+		#     set beresp.do_gzip = true;
+		#   }
+
+		  if ( req.url ~ "^/shop/[0-9]+$" || req.url ~ "^/shop/[0-9]?.*" ) {   
+		    set beresp.ttl = 4h;
+		  }
+
+		 if ( req.url ~ "^/shop/(\d{1,})/editmember" || req.url ~ "^/shop/(\d{1,})/map" || req.url ~ "^/shop/(\d+)/dish-([^/]+)" ) {
+		     set beresp.ttl = 24h;
+		  } 
+
+		  if (beresp.status != 200){
+		    return (hit_for_pass);
+		  }
+		  return (deliver);
+		}
+
+		sub vcl_deliver {
+		  if (obj.hits > 0){
+		    set resp.http.X-Cache = "HIT";
+		  } 
+		  else {
+		    set resp.http.X-Cache = "MISS";
+		  }
+		  set resp.http.X-Powered-By = "Cache on " + server.ip;
+		  set resp.http.X-Age = resp.http.Age;
+		  return (deliver);
+		}
+
+		sub vcl_error {
+		  set obj.http.Content-Type = "text/html; charset=utf-8";
+		  set obj.http.Retry-After = "5";
+		  synthetic {""} + obj.status + " " + obj.response + {""};
+		  return (deliver);
+		}
+
+		sub vcl_init {
+		  return (ok);
+		}
+
+		sub vcl_fini {
+		  return (ok);
+		}
+
+补充资料：
+	varnish的线程模型：
+		cache-worker线程
+		cache-main线程：此线程只有一个，用于启动caceh；
+		ban luker：
+		acceptor：
+		epoll：线程池管理器
+		expire：清理过期缓存
+
+		varnish定义其最大并发连接数：线程池模型：
+			thread_pools：线程池个数；默认为2；
+			thread_pool_max：单线程池内允许启动的最多线程个数；
+			thread_pool_min
+			thread_pool_timeout：多于thread_pool_min的线程空闲此参数指定的时长后即被purge；
+
+	varnish的param查看及改变：
+		param.show [-l] [param]
+		param.set [param] [value]
+
+	varnish的命令行工具：
+		varnishadm, 
+
+		varnishtop: 内存日志区域查看工具
+			RxHeader User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.81 Safari/537.36
+
+			其中：
+				RxHeader：称为tag, 基于tag过滤，可使用-i或-x选项；
+				User-Agent起始的内容：称为日志信息，可使用-I或-X选项进行过滤；
+
+				-I regexp: 仅显示被模式匹配到的条目
+				-X regexp：仅显示不被模式匹配到的条目
+				-C: 忽略字符大小写；
+				-d: 显示已有日志；
+
+		varnishstat：
+			-f field, field, ...
+			-l: 列出所有可用字段
+			-x: xml输出格式 
+			-j: json输出格式
+
+		varnishlog, varnishncsa
+
+Tomcat:
+	
+	编程语言：
+		系统级：C, C++, go, erlang
+		应用级：C#, Java, Python, Perl, Ruby, php
+			虚拟机：jvm, pvm
+			动态网站：asp .net, jsp
+
+	动态网站：
+		客户端动态
+		服务器动态：
+			CGI
+
+		webapp server:
+			jsp: tomcat, jboss, jetty
+			php: php-fpm
+
+		Java编程语言：
+			SUN, James Gosling, Green Project, Oak, Java, SunWorld 
+			1995: Java 1.0, Write Once, Run Anywhere
+			1996: JDK (Java Development Kit)，包含一个JVM（Sun Classic VM）
+				JDK 1.0: JVM, Applet, AWT
+			1997：JDK 1.1
+				JAR文档格式、JDBC、JavaBeans
+			1998：JDK 1.2
+				Sun把Java技术分拆为三个方向：Java 2
+					J2SE: Standard Edition
+					J2EE：Enterprise Edition
+					J2ME：Mobile Edition
+				代表性技术：EJB, Java Plug-in, Swing, 
+					JIT编译器: Just In Time，即时编译器
+
+			2000：JDK 1.3
+				1999：HotSpot虚拟机
+			2002：JDK 1.4
+
+			2006年，Sun开源了Java技术；遵循GPL规范；并建立了OpenJDK组织管理此些代码；
+
+			虚拟机：JRockit, HostSpot; 
+
+		编程语言的类别：指令+数据
+			面向过程：以指令为中心，围绕指令组织数据；
+			面向对象：以数据为中心，围绕数据组织指令；
+
+		Java体系结构：
+			Java编程语言；
+			Java Class文件格式；
+			Java API；
+			Java VM；
+
+		JVM的核心组成部分：
+			Class Loader
+			执行引擎
+
+		Java编程语言的特性：
+			面向对象、多线程、结构化错误处理
+			垃圾收集、动态链接、动态扩展
+
+		三个技术流派：
+			J2SE ==> Java 2 SE
+			J2EE ==> Java 2 EE
+			J2ME ==> Java 2 ME
+
+		JVM运行时区域：运行为多个线程
+			方法区：线程共享；用于存储被虚拟加载的类信息、常量、静态变量等；永久代；
+			堆：Java堆是jvm所管理的内存中最大的一部分；也是GC管理的主要区域，主流的算法都基于分代收集方式进行：新生代和老年代；线程共享
+			Java栈：线程私有，存放线程自己的局部变量等信息；
+			PC寄存器（Program Counter Register），线程独占的内存空间；
+			本地方法栈：
+
+		JAVA 2 EE：
+			JAVA 2 SE
+			Servlet, JSP, EJB, JMS, JMX, JavaMail
+
+			Servlet Contaier：
+				println("<h1>")
+
+				html标签要硬编码在应用程序中；
+
+			JSP：
+				<html>
+				<body>
+					<h1>...</h1>
+				<% 
+				%>
+
+				</body>
+				</html>
+
+			Web Container：
+				JDK, Servlet, JSP
+
+				商业实现：
+					WebSphere(IBM)
+					WebLogic (BEA --> Oracle)
+					Oc4j
+					Glassfish
+					Geronimo
+					JOnAS
+					JBoss
+
+				开源实现：
+					Tomcat
+					jetty
+					resin
+
+		Tomcat的核心组件：
+			catalina: servlet container
+			Coyote: http connection
+			Jasper: JSP Engine
+
+			Tomcat的开发语言：JAVA
+
+		Tomcat Instance: 运行中的tomcat进程(java进程)
+			Server: 即一个tomcat实例；
+			Service: 用于将connector关联至engine组件；一个service只能包含一个engine组件和一个或多个connector组件；
+			Engine：Tomcat的核心组件，用于运行jsp或servlet代码；
+			Connector：接入并解析用户请求，将请求映射为Engine中运行的代码；之后，将运行结果构建成响应报文；
+				http, ajp
+			Host：类似httpd中的虚拟主机；
+			Context：类似于httpd中的alias; 
+
+			注意：每个组件都由“类”来实现，有些组件的实现还不止一种；
+				顶级类组件：server
+				服务类组件：service
+				容器类组件：即可以部署webapp的组件，engine, host, context
+				连接器组件：connector
+				被嵌套类组件：valve, logger, realm
+
+
+				<server>
+					<service>
+						<connector />
+						<connector />
+						...
+						<engine>
+							<host>
+								<context />
+								...
+							</host>
+							...
+						</engine>
+					</service>
+				</server>
+
+			Tomcat的运行模式：
+				standalone：通过内置的web server (http connector)来接收客户端请求；
+				proxy：由专门的web server服务客户端的http请求；
+					in-process: 部署于同一主机；
+					network: 部署于不同主机；
+
+		安装Tomcat：
+			官方站点：http://tomcat.apache.org
+
+			部署前提：
+				jdk：
+					Oracel JDK
+					OpenJDK
+
+			部署Tomcat：
+
+		Tomcat的目录结构：
+			bin: 脚本及启动时用到的类
+			lib: 类库
+			conf: 配置文件
+			logs: 日志文件
+			webapps: 应用程序默认部署目录
+			work：工作目录
+			temp：临时文件目录
+
+		配置文件：
+			server.xml: 主配置文件
+			context.xml：每个webapp都可以有专用的配置文件，这些配置文件通常位于webapp应用程序目录下的WEB-INF目录中，用于定义会话管理器、JDBC等；conf/context.xml是为各webapp提供默认配置；
+			web.xml：每个webapp“部署”之后才能被访问；此文件则用于为所有的webapp提供默认部署相关的配置；
+			tomcat-users.xml：用户认证的账号和密码配置文件；
+			catalina.policy：当使用-security选项启动tomcat实例时会读取此配置文件来实现其安全运行策略；
+			catalina.properties：Java属性的定义文件，用于设定类加载器路径等，以及一些JVM性能相关的调优参数；
+			logging.properties：日志相关的配置信息；
+
+
+回顾： java, tomcat
+
+	java: 
+		servlet: java 2 ee的一个特殊类；
+		jsp: java 2 ee的一个特殊类；
+
+	java 2 ee: java 2 se, servlet, jsp, jmx, javamail, ...
+
+	jsp --> jasper --> servlet --> complie --> bytecodes --> jvm
+
+	tomcat: JWS(Sun) + Jserv(ASF)
+
+	tomcat: jdk + tomcat
+
+	tomcat：server.xml
+		server, service, connector, engine, host, context
+
+	部署：
+		jvm:
+			运行时区域：
+				堆：对象；
+				栈
+
+Tomcat(2)
+	
+	tomcat:
+		CentOS 6:
+			Oracle JDK, Tomcat
+			yum repo:
+				jdk
+				tomcat6
+				tomcat
+
+		CentOS 7:
+			OpenJDK 7
+			Tomcat 7
+
+		JDK：
+			1.6，1.7，1.8
+
+	Java WebAPP 组织结构:
+		有特定的组织形式、层次型的目录结构；主要包含了servlet代码文件、JSP页面文件、类文件、部署描述符文件等；
+			/usr/local/tomcat/webapps/app1/
+				/: webapp的根目录；
+				WEB-INF/：当前webapp的私有资源目录，通常存放当前webapp自用的web.xml；
+				META-INF/：当前webapp的私有资源目录，通常存放当前webapp自用的context.xml；
+				classes/: 此webapp的私有类；
+				lib/: 此webapp的私有类，被打包为jar格式类；
+				index.jsp：webapp的主页
+
+			webapp归档格式：
+				.war：webapp；
+				.jar：EJB的类；
+				.rar：资源适配器；
+				.ear：企业级应用程序；
+
+	手动添加一个测试应用程序：
+		1、创建webapp特有的目录结构；
+			mkdir -pv myapp/{lib,classes,WEB-INF,META-INF} 
+		2、提供webapp各文件；
+			myapp/index.jsp
+				<%@ page language="java" %>
+				<%@ page import="java.util.*" %>
+				<html>
+					<head>
+						<title>JSP Test Page</title>
+					</head>
+					<body>
+						<% out.println("Hello, world."); %>
+					</body>
+				</html>
+
+	部署（deployment）webapp相关的操作：
+		deploy：部署，将webapp的源文件旋转于目标目录、配置tomcat服务器能够基于context.xml文件中定义的路径来访问此webapp; 将其特有类通过class loader装载至tomcat；
+			有两种方式：
+				自动部署：auto deploy
+				手动部署：
+					1、冷部署：把webapp复制到指定位置，而后才启动tomcat；
+					2、热部署：在不停止tomcat的前提下进行的部分：
+						部署工具：manager、ant脚本、tcd（tomcat client deployer）等；
+		undeploy：反部署，停止webapp，并从tomcat实例拆除其部分文件和部署名；
+		stop：停止，不再向用户提供服务；
+		start：启动处于“停止”状态的webapp；
+		redeploy：重新部署；
+
+	tomcat自带的应用程序：
+		manager app: webapp管理工具
+		host manager：Virtual Hosts管理工具
+
+	tomcat的主配置文件结构：
+		<server attribute="value" attribute2="value">
+			<service>
+				<connector />
+				<connector />
+				<engine >
+					<host name="">
+					</host>
+					<host name="">
+					</host>
+					<host name="">
+						<context />
+						<context />						
+					</host>										
+				</engine>
+			</service>
+		</server>
+
+		AJP: apache jserv protocol, 二进制协议；
+
+	自定义Host及Context示例：
+	      <Host name="web1.magedu.com" appBase="/data/webapps/" unpackWARs="true" autoDeploy="true">
+			<Context path="" docBase="ROOT" reloadable="true">
+			  <Valve className="org.apache.catalina.valves.RemoteAddrValve"
+		           deny="172\.16\.100\.100"/>
+	        </Context>
+			<Context path="/shop" docBase="shopxx" reloadable="true" />
+	        <Valve className="org.apache.catalina.valves.AccessLogValve" directory="/data/logs"
+	               prefix="web1_access_log" suffix=".txt"
+	               pattern="%h %l %u %t &quot;%r&quot; %s %b" />	 
+	      </Host>
+
+	  	注意：path给定的路径不能以“/”结尾；
+
+	LNMT：
+		client -->http --> nginx --> reverse_proxy --> http --> tomcat (http connector)	
+
+		location ~* \.(jsp|do)$ {
+	    	proxy_pass http://web1.magedu.com:8080;
+  		}
+
+  	LAMT：
+  		client --> http --> httpd --> reverse_proxy --> {http|ajp} --> tomcat {http connector|ajp connector}
+
+  		反代模块：
+  			主：proxy_module
+  			子：proxy_module_http, proxy_module_ajp
+
+  		proxy_module_http:
+			<VirtualHost *:80>
+			    ServerName web1.magedu.com
+			    ProxyVia On
+			    ProxyRequests Off
+			    ProxyPreserveHost On
+			    <Proxy *>
+			        Require all granted
+			    </Proxy>
+			    ProxyPass / http://172.16.100.67:8080/
+			    ProxyPassReverse / http://172.16.100.67:8080/
+			    <Location />
+			        Require all granted
+			    </Location>
+			</VirtualHost>
+
+		proxy_module_ajp:
+			<VirtualHost *:80>
+			    ServerName web1.magedu.com
+			    ProxyVia On
+			    ProxyRequests Off
+			    ProxyPreserveHost On
+			    <Proxy *>
+					Require all granted
+			    </Proxy>
+			    ProxyPass /status !
+			    ProxyPass / ajp://172.16.100.67:8009/
+			    ProxyPassReverse / ajp://172.16.100.67:8009/
+			    <Location />
+					Require all granted
+			    </Location>
+			</VirtualHost>			
+
+  	LNAMT：
+
+回顾：tomcat配置和应用
+	server.xml, webapp的组织形式, 应用程序的部署, LAMT, LNMT, LNAMT;
+
+		server.xml:
+			<server>
+				<service>
+					<connector port="8080" />
+					<connector port="8009" protocol="AJP/1.3" />
+					<engine >
+						<Host />
+						<Host >
+							<Context path="" docBase="" />
+						</Host>
+					</engine>
+				</service>
+			</server>
+
+		webapp:
+			/
+			classes
+			lib
+			META-INF
+			WEB-INF
+
+		部署：
+			冷部署：
+			热部署：manager app, ant, tcd
+
+Tomcat Cluster(3)
+	
+	会话保持：
+		session sticky
+			source ip
+			cookie
+		session cluster: 
+		session server
+			kv: memcached, redis
+
+	(1) LB tomcat
+		nginx tomcats
+		apache tomcats
+	(2) LB tomcat cluster
+	(3) LB tomcat 
+		session server
+			memcached
+
+
+	apache: tomcats
+		(1) apache: 
+				mod_proxy
+				mod_proxy_http
+				mod_proxy_balancer
+			tomcat:
+				http connector
+		(2) apache: 
+				mod_proxy
+				mod_proxy_ajp
+				mod_proxy_balancer				
+			tomcat:
+				ajp connector
+		(3) apache:
+				mod_jk
+			tomcat:
+				ajp connector
+
+	第一种方法的实现：
+		<proxy balancer://lbcluster1>
+		    BalancerMember http://172.16.100.68:8080 loadfactor=10 route=TomcatA
+		    BalancerMember http://172.16.100.69:8080 loadfactor=10 route=TomcatB
+		</proxy>
+
+		<VirtualHost *:80>
+		    ServerName web1.magedu.com
+		    ProxyVia On
+		    ProxyRequests Off
+		    ProxyPreserveHost On
+		    <Proxy *>
+		        Require all granted
+		    </Proxy>
+		    ProxyPass / balancer://lbcluster1/
+		    ProxyPassReverse / balancer://lbcluster1/
+		    <Location />
+		        Require all granted
+		    </Location>
+		</VirtualHost>
+
+
+		如果需要会话绑定：
+			Header add Set-Cookie "ROUTEID=.%{BALANCER_WORKER_ROUTE}e; path=/" env=BALANCER_ROUTE_CHANGED
+			<proxy balancer://lbcluster1>
+			    BalancerMember http://172.16.100.68:8080 loadfactor=10 route=TomcatA
+			    BalancerMember http://172.16.100.69:8080 loadfactor=10 route=TomcatB
+			    ProxySet stickysession=ROUTEID
+			</proxy>
+
+			<VirtualHost *:80>
+			    ServerName web1.magedu.com
+			    ProxyVia On
+			    ProxyRequests Off
+			    ProxyPreserveHost On
+			    <Proxy *>
+			        Require all granted
+			    </Proxy>
+			    ProxyPass / balancer://lbcluster1/
+			    ProxyPassReverse / balancer://lbcluster1/
+			    <Location />
+			        Require all granted
+			    </Location>
+			</VirtualHost>		
+
+	第二种方法的实现：
+		#Header add Set-Cookie "ROUTEID=.%{BALANCER_WORKER_ROUTE}e; path=/" env=BALANCER_ROUTE_CHANGED
+		<proxy balancer://lbcluster1>
+		    BalancerMember ajp://172.16.100.68:8009 loadfactor=10 route=TomcatA
+		    BalancerMember ajp://172.16.100.69:8009 loadfactor=10 route=TomcatB
+		    ProxySet stickysession=ROUTEID
+		</proxy>
+
+		<VirtualHost *:80>
+		    ServerName web1.magedu.com
+		    ProxyVia On
+		    ProxyRequests Off
+		    ProxyPreserveHost On
+		    <Proxy *>
+		        Require all granted
+		    </Proxy>
+		    ProxyPass / balancer://lbcluster1/
+		    ProxyPassReverse / balancer://lbcluster1/
+		    <Location />
+		        Require all granted
+		    </Location>
+		</VirtualHost>
+
+	补充:mod_proxy_balancer模块内置的manager：
+		<Location /balancer-manager>
+		  SetHandler balancer-manager
+		  Proxypass !
+		  Order Deny,Allow
+		  Allow from all
+		</Location>	
+
+	第三种方式：
+		mod_jk：额外编译安装
+
+		(1) 反向代理
+			模块配置文件：mod_jk.conf 
+				LoadModule  jk_module  modules/mod_jk.so
+				JkWorkersFile  /etc/httpd/conf.d/workers.properties
+				JkLogFile  logs/mod_jk.log
+				JkLogLevel  debug
+				JkMount  /*  TomcatA
+				JkMount  /status/  stat1
+
+			workers配置文件：workers.properties
+				worker.list=TomcatA,stat1
+				worker.TomcatA.port=8009
+				worker.TomcatA.host=172.16.100.68
+				worker.TomcatA.type=ajp13
+				worker.TomcatA.lbfactor=1
+				worker.stat1.type = status
+
+			注意：status的访问要做访问控制；
+
+		(2) 负载均衡
+			模块配置文件：mod_jk.conf
+				LoadModule  jk_module  modules/mod_jk.so
+				JkWorkersFile  /etc/httpd/conf.d/workers.properties
+				JkLogFile  logs/mod_jk.log
+				JkLogLevel  debug
+				JkMount  /*  lbcluster1
+				JkMount  /status/  stat1
+
+			workers配置文件：workers.properties
+				worker.list = lbcluster1,stat1
+				worker.TomcatA.type = ajp13
+				worker.TomcatA.host = 172.16.100.68
+				worker.TomcatA.port = 8009
+				worker.TomcatA.lbfactor = 1
+				worker.TomcatB.type = ajp13
+				worker.TomcatB.host = 172.16.100.69
+				worker.TomcatB.port = 8009
+				worker.TomcatB.lbfactor = 1
+				worker.lbcluster1.type = lb
+				worker.lbcluster1.sticky_session = 0
+				worker.lbcluster1.balance_workers = TomcatA, TomcatB
+				worker.stat1.type = status	
+
+	Session Cluster：
+
+		session manager：会话管理器
+
+			StandardManager
+			PersistentManager：
+				FileStore
+				JDBC
+			DeltaManager
+			BackupManager
+
+		构建步骤：
+			(1) 各节点配置使用deltamaanager：
+        <Cluster className="org.apache.catalina.ha.tcp.SimpleTcpCluster"
+                 channelSendOptions="8">
+
+          <Manager className="org.apache.catalina.ha.session.DeltaManager"
+                   expireSessionsOnShutdown="false"
+                   notifyListenersOnReplication="true"/>
+
+          <Channel className="org.apache.catalina.tribes.group.GroupChannel">
+            <Membership className="org.apache.catalina.tribes.membership.McastService"
+                        address="228.0.1.7"
+                        port="45564"
+                        frequency="500"
+                        dropTime="3000"/>
+            <Receiver className="org.apache.catalina.tribes.transport.nio.NioReceiver"
+                      address="auto"
+                      port="4000"
+                      autoBind="100"
+                      selectorTimeout="5000"
+                      maxThreads="6"/>
+
+            <Sender className="org.apache.catalina.tribes.transport.ReplicationTransmitter">
+              <Transport className="org.apache.catalina.tribes.transport.nio.PooledParallelSender"/>
+            </Sender>
+            <Interceptor className="org.apache.catalina.tribes.group.interceptors.TcpFailureDetector"/>
+            <Interceptor className="org.apache.catalina.tribes.group.interceptors.MessageDispatch15Interceptor"/>
+          </Channel>
+
+          <Valve className="org.apache.catalina.ha.tcp.ReplicationValve"
+                 filter=""/>
+          <Valve className="org.apache.catalina.ha.session.JvmRouteBinderValve"/>
+
+          <Deployer className="org.apache.catalina.ha.deploy.FarmWarDeployer"
+                    tempDir="/tmp/war-temp/"
+                    deployDir="/tmp/war-deploy/"
+                    watchDir="/tmp/war-listen/"
+                    watchEnabled="false"/>
+
+          <ClusterListener className="org.apache.catalina.ha.session.ClusterSessionListener"/>
+        </Cluster>
+
+        (2) 为需要使用session cluster的webapps开启session distribution的功能：
+        	WEB-INF/web.xml中添加
+        		<distributable/>
+
+ 	博客作业：
+ 		(1) nginx, apache(mod_proxy_http, mod_proxy_ajp, mod_jk)反代用户请求至tomcat；
+ 		(2) nginx, apache(mod_proxy_http, mod_proxy_ajp, mod_jk)负载均衡用户请求至tomcat；额外实现session sticky；
+ 		(3) tomcat session cluster;
+
+ 		实际应用：
+ 			haproxy --> lamt ()
+				
+回顾：tomcat lb cluster, session cluster
+
+	lb cluster：
+		nginx, httpd
+
+		nginx: upstream
+		httpd: mod_proxy, mod_proxy_balancer
+			mod_proxy_http, mod_proxy_ajp
+
+			mod_jk
+				worker
+
+	session cluster：
+		多播：session replication
+
+			standardmanager
+			persistentmanager
+			deltamanager
+			backupmanager
+
+Memcached：
+	LiveJournel旗下Danga Interactive公司Brad。
+		高性能key/value数据缓存；
+
+	软件系统：
+		结构化数据：RDBMS
+		半结构化数据：JSON(Documentation) --> NoSQL
+		非结构化数据：文件系统
+			分布式：文件系统、存储；
+				FUSE
+
+	memcached的特点：
+		协议简单
+		基于libevent事件处理
+		基于内存完成数据存储：LRU
+		memcached互不通信的集群：分布式
+
+		旁挂式缓存：
+			一半在客户端；一半在服务端；
+
+			php: extensions
+				memcache, memcached
+			c: libmemcached
+
+	内存存储：
+		slab allocation：整理内存以进行复用；
+			slab allocator
+
+			Page: 分配给slab用于再次分割为chunk的内存空间；
+			chunk：用于缓存缓存对象的空间；
+			slab class：特定大小的chunk组合而成的组；
+
+	memcached-tool查看stats：
+		#：slab class的编号；
+		Item_size：Chunk大小；
+		Max_age：缓存对象的生存时间；
+		Pages：分配给slab内存页数；
+		Count：slab内的记录数；
+		Full?：slab内是否仍有空闲chunk；
+
+	分布式机制：
+		互不通信的分布式集群；
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+							
+
+
+
+

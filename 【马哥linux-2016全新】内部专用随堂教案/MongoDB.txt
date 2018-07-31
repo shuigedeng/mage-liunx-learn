@@ -1,0 +1,1175 @@
+
+
+(最终一致性)
+
+数据一致性模型：强一致性，弱一致性，最终一致性()
+
+数据一致性的实现技术：
+	Quorum系统NRW策略
+		N: 总的副本数
+		R: 完成读操作所需读取的最少副本数；
+		W：完成写操作所需写入的最少副本数；
+
+	强一致性：R+W>N
+		MySQL: 一主两从
+
+	R+W<=N：最多只能保证最终一致性；
+
+
+	两段式提交：2PC （Two Phase Commit Protocol)
+
+	有两类节点：
+		一类为协调者
+		一类为事务参与者
+
+		两段：
+			第一阶段：请求阶段
+			第二阶段：提交阶段
+
+	时间戳策略
+
+	Paxos: 
+
+	向量时钟
+
+
+
+NoSQL的数据存储模型
+	键值模型：
+		数据模型：key-value存储
+		优点：查找速度快
+		缺点：数据无结构，通常只被当作字符串或二进制数据
+		应用场景：内容缓存
+		实例：Redis, Dynamo
+
+	列式模型：
+		数据模型：数据按列存储，将同一列数据存在一起；
+		优点：查找迅速、可扩展性强、易于实现分布式；
+		缺点：功能相对SQL很有限；
+		应用场景：分布式文件系统或分布式存储
+		实例：Bigtable, Cassandra, HBase, Hypertable
+
+	文档模型：
+		数据模型：与键值模型类似，value指向结构化数据；
+		优点：数据格式要求不严格，无需事先定义结构
+		缺点：查询性能不高，缺乏统一查询语法
+		应用场景：web应用；
+		实例：MongoDB, CouchDB
+
+	图式模型：
+		数据模型：图结构模型
+		优点：利用图结构相关算法提高性能，并足特殊场景应用需求
+		缺点：难以实现分布式，功能有定向性；
+		应用场景：社交网络、推荐系统、关系图谱
+		实例：Neo4J
+
+www.nosql-database.org
+
+
+{
+	name: Tom
+	Age: 30
+	Gender: Male
+	Books: {
+		first: one puppet
+		second: tow puppet
+	}
+}
+
+
+{
+	name: Jerry
+	Age: 15
+	Gender: Female
+	Books {
+		first: none cat
+		second: many money
+	}
+	Birthday: 2013-10-28
+}
+
+C/S:
+	mongod
+	mongo --> mongod
+	mongo> use testdb
+	mongo> db.mycollection.insert()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+RPM包下载地址，请自行选择适用的版本：
+http://downloads-distro.mongodb.org/repo/redhat/os/
+
+
+
+二进制包直接安装：
+# groupadd -r mongod
+# useradd -M -r -g mongod -d /data/db -s /bin/false -c mongod mongod
+
+# mkdir -p /data/db
+# mkdir -p /var/log/mongo/
+# chown mongodb /mongo/data /var/log/mongo/
+
+# mongod --config /etc/mongod.conf
+
+
+建立配置文件/etc/mongod.conf
+# mongo.conf
+
+#where to log
+logpath=/var/log/mongo/mongod.log
+
+logappend=true
+
+# fork and run in background
+fork = true
+
+#port = 27017
+
+dbpath=/mongo/data
+
+# location of pidfile
+pidfilepath = /var/run/mongodb/mongod.pid
+
+# Disables write-ahead journaling
+# nojournal = true
+
+# Enables periodic logging of CPU utilization and I/O wait
+#cpu = true
+
+# Turn on/off security.  Off is currently the default
+#noauth = true
+#auth = true
+
+# Verbose logging output.
+#verbose = true
+
+# Inspect all client data for validity on receipt (useful for
+# developing drivers)
+#objcheck = true
+
+# Enable db quota management
+#quota = true
+
+# Set oplogging level where n is
+#   0=off (default)
+#   1=W
+#   2=R
+#   3=both
+#   7=W+some reads
+#diaglog = 0
+
+# Ignore query hints
+#nohints = true
+
+# Disable the HTTP interface (Defaults to localhost:27018).
+#nohttpinterface = true
+
+# Turns off server-side scripting.  This will result in greatly limited
+# functionality
+#noscripting = true
+
+# Turns off table scans.  Any query that would do a table scan fails.
+#notablescan = true
+
+# Disable data file preallocation.
+#noprealloc = true
+
+# Specify .ns file size for new databases.
+# nssize = <size>
+
+# Accout token for Mongo monitoring server.
+#mms-token = <token>
+
+# Server name for Mongo monitoring server.
+#mms-name = <server-name>
+
+# Ping interval for Mongo monitoring server.
+#mms-interval = <seconds>
+
+# Replication Options
+
+# in replicated mongo databases, specify here whether this is a slave or master
+#slave = true
+#source = master.example.com
+# Slave only: specify a single database to replicate
+#only = master.example.com
+# or
+#master = true
+#source = slave.example.com
+
+
+
+
+建立服务脚本mongod：
+#!/bin/bash
+
+# mongod - Startup script for mongod
+
+# chkconfig: 35 85 15
+# description: Mongo is a scalable, document-oriented database.
+# processname: mongod
+# config: /etc/mongod.conf
+# pidfile: /var/run/mongo/mongod.pid
+
+. /etc/rc.d/init.d/functions
+
+# things from mongod.conf get there by mongod reading it
+
+CONFIGFILE="/etc/mongod.conf"
+OPTIONS=" -f $CONFIGFILE"
+SYSCONFIG="/etc/sysconfig/mongod"
+
+DBPATH=`awk -F= '/^dbpath=/{print $2}' "$CONFIGFILE"`
+PIDFILE=`awk -F= '/^dbpath\s=\s/{print $2}' "$CONFIGFILE"`
+mongod=${MONGOD-/usr/local/mongodb/bin/mongod}
+
+MONGO_USER=mongod
+MONGO_GROUP=mongod
+
+if [ -f "$SYSCONFIG" ]; then
+    . "$SYSCONFIG"
+fi
+
+# Handle NUMA access to CPUs (SERVER-3574)
+# This verifies the existence of numactl as well as testing that the command works
+NUMACTL_ARGS="--interleave=all"
+if which numactl >/dev/null 2>/dev/null && numactl $NUMACTL_ARGS ls / >/dev/null 2>/dev/null
+then
+    NUMACTL="numactl $NUMACTL_ARGS"
+else
+    NUMACTL=""
+fi
+
+start()
+{
+  echo -n $"Starting mongod: "
+  daemon --user "$MONGO_USER" $NUMACTL $mongod $OPTIONS
+  RETVAL=$?
+  echo
+  [ $RETVAL -eq 0 ] && touch /var/lock/subsys/mongod
+}
+
+stop()
+{
+  echo -n $"Stopping mongod: "
+  killproc -p "$PIDFILE" -d 300 /usr/bin/mongod
+  RETVAL=$?
+  echo
+  [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/mongod
+}
+
+restart () {
+	stop
+	start
+}
+
+ulimit -n 12000
+RETVAL=0
+
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  restart|reload|force-reload)
+    restart
+    ;;
+  condrestart)
+    [ -f /var/lock/subsys/mongod ] && restart || :
+    ;;
+  status)
+    status $mongod
+    RETVAL=$?
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|status|restart|reload|force-reload|condrestart}"
+    RETVAL=1
+esac
+
+exit $RETVAL
+
+
+
+
+
+
+
+
+安装Rockmongo：
+
+解决依赖关系
+# yum -y install httpd php php-pecl-mongo
+
+
+
+
+db.COLL_NAME.METHOD
+常用的方法：
+C: insert()
+R: find()
+U: update()
+D: remove()
+
+用JSON格式的文档：
+insert({})
+find({},{}).
+	limit()
+	sort()
+	count()
+	skip()
+update({},{},{multi: true})
+remove({})
+
+Database, Collection, Document
+
+索引：
+
+
+
+
+NoSQL:
+	键值存储模型
+	列式存储
+	文档存储
+	图式存储
+
+文档：JSON, BSON
+
+database: collection (Document)
+
+C/S：mongod, mongo
+
+CRUD:
+
+db.COLLECTION.insert({})
+
+db.COLLECTION.update({查找标准},{修改操作},{multi: true})
+db.COLLECTION.remove({查找标准})
+
+db.COLLECTION.find({查找标准},{显示的域}).
+	limit()
+	count()
+	skip()
+	sort({age: 1})
+
+比较操作、逻辑操作、元素操作
+
+比较操作：
+	$lt
+	$lte
+	$in
+	$nin
+	$gt
+	$gte
+
+	{Field: {$opeartor: VALUE}}
+
+逻辑操作：
+	$and
+	$or
+	$not
+	$nor
+
+{$operator [{},{},{}]}
+
+	db.testcoll.find({$or: [{Name: "User12"}, {Age: {$gt: 80}}]})
+
+1000W：80
+
+全表扫描
+
+索引的优点：
+1、大大减少了服务器需要扫描的数据量；
+2、索引可以帮助服务器避免排序或使用临时表；
+3、索引可以将随机I/O转换顺序I/O；
+
+	关系型数据库索引设计与优化
+
+索引：三星
+一星：索引如果能将相关的记录放置在一起
+二星：索引中数据的存储顺序与查找标准中顺序一致
+三星：如果索引中包含查询中所需要的全部数据；(覆盖索引)
+
+索引类别：
+	顺序索引
+	散列索引：将索引映射至散列桶上，映射是通过散列函数进行的；
+
+评估索引的标准：
+	访问类型：
+	访问时长：
+	插入时长：
+	删除时长：
+	空间开销：
+
+顺序索引：
+	聚集索引: 如果某记录文件中的记录顺序是按照对应的搜索码指定的顺序排序；聚集索引也称为主索引； （辅助索引）
+	非聚集索引：搜索码中的指定的次序与记录文件中的记录次序不一致；
+
+	有聚集索引的数据文件，也叫作索引顺序文件；
+
+	根据索引中是否为每个记录相应地创建索引项：稠密索引和稀疏索引
+
+多级索引：
+	
+	
+辅助索引必须是稠密索引
+
+B+树索引：
+	Balance Tree：平衡树索引
+
+
+顺序索引的特性：
+	全值匹配： Name="user12"
+	匹配最左前缀：Name LIKE "User1%", 无效：Name LIKE "%User1%"
+	匹配列前缀：Name LIKE "User1%", 无效：Name LIKE "%User1%"
+	匹配范围值：
+	精确匹配某一列并范围匹配另外一列：
+	只访问索引的查询：
+
+
+
+
+组合索引：(Age,Name), Age > 80 and Name = "User12"
+
+
+
+散列索引：
+	散列函数：
+		分布随机
+		分布均匀
+
+
+适用场景：
+	精确匹配：=，IN(), <=>
+
+MySQL: 全文索引；fulltext
+	sphinx, lucene
+
+	空间索引：必须使用空间索引函数获取相应的查询结果；
+
+	主键，惟一键
+
+MySQL: 创建索引
+	CREATE INDEX index_name ON table (col1,...)
+	ALTER TABLE ADD INDEX 
+	ALTER TABLE DROP INDEX
+	DROP INDEX index_name FROM TABLE 
+	SHOW INDEXES FROM TABLE;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+mongodb复制集：
+
+
+
+配置文件选项：
+
+port = 27017
+
+bind_ip = 10.8.0.10
+
+dbpath = /srv/mongodb/
+
+fork = true
+
+replSet = rs0
+rest = true
+
+
+
+
+接着初始化:
+
+Use rs.initiate() to initiate a replica set consisting of the current member and using the default configuration, as follows:
+rs.initiate()
+Display the current replica configuration:
+rs.conf()
+
+
+
+
+
+
+
+
+
+重新配置：
+cfg = rs.conf()
+cfg.members[2].priority = 0
+rs.reconfig(cfg)
+
+
+添加arbiter节点：
+rs.addArb("mongodb4.example.net")
+
+
+cfg = rs.conf()
+cfg.members[2].priority = 0
+rs.reconfig(cfg)
+
+
+
+
+
+
+
+
+
+
+
+有3种方式可以初始化一个副本集：
+1、db.runCommand( { replSetInitiate : <config_object> } )
+2、rs.initiate(<config_object>)
+3、rs.initiate()//先初始化，再通过rs.add等方法修改
+这里的config_object会记录在local.system.replset这个集合内，这个集合会自动的在副本集成员之间广播，而且我们不能直接修改他们，需要使用命令来改变它，例如（replSetInitiate 命令）。
+
+
+
+ > rs.help()
+	rs.status()                     { replSetGetStatus : 1 } checks repl set status
+	rs.initiate()                   { replSetInitiate : null } initiates set with default settings
+	rs.initiate(cfg)                { replSetInitiate : cfg } initiates set with configuration cfg
+	rs.conf()                       get the current configuration object from local.system.replset
+	rs.reconfig(cfg)                updates the configuration of a running replica set with cfg (disconnects)
+	rs.add(hostportstr)             add a new member to the set with default attributes (disconnects)
+	rs.add(membercfgobj)            add a new member to the set with extra attributes (disconnects)
+	rs.addArb(hostportstr)          add a new member which is arbiterOnly:true (disconnects)
+	rs.stepDown([secs])             step down as primary (momentarily) (disconnects)
+	rs.syncFrom(hostportstr)        make a secondary to sync from the given member
+	rs.freeze(secs)                 make a node ineligible to become primary for the time specified
+	rs.remove(hostportstr)          remove a host from the replica set (disconnects)
+	rs.slaveOk()                    shorthand for db.getMongo().setSlaveOk()
+
+	db.isMaster()                   check who is primary
+	db.printReplicationInfo()       check oplog size and time range
+
+
+
+
+
+触发重新选举：
+	优先级为0的节点，无权触发；仅参与选举；
+	
+
+
+
+
+
+
+设定某节点的优先级
+
+testSet0:PRIMARY> use admin
+testSet0:PRIMARY> cfg=rs.conf()
+{
+	"_id" : "testSet0",
+	"version" : 3,
+	"members" : [
+		{
+			"_id" : 0,
+			"host" : "172.16.100.15:27017"
+		},
+		{
+			"_id" : 1,
+			"host" : "172.16.100.16:27017"
+		},
+		{
+			"_id" : 2,
+			"host" : "172.16.100.17:27017"
+		}
+	]
+}
+testSet0:PRIMARY> cfg.members[0].priority=2
+2
+testSet0:PRIMARY> rs.reconfig(cfg)
+Thu Oct 17 16:31:35.060 DBClientCursor::init call() failed
+Thu Oct 17 16:31:35.062 trying reconnect to 172.16.100.17:27017
+Thu Oct 17 16:31:35.078 reconnect 172.16.100.17:27017 ok
+reconnected to server after rs command (which is normal)
+
+testSet0:SECONDARY> rs.conf()
+{
+	"_id" : "testSet0",
+	"version" : 4,
+	"members" : [
+		{
+			"_id" : 0,
+			"host" : "172.16.100.15:27017",
+			"priority" : 2
+		},
+		{
+			"_id" : 1,
+			"host" : "172.16.100.16:27017"
+		},
+		{
+			"_id" : 2,
+			"host" : "172.16.100.17:27017"
+		}
+	]
+}
+
+
+
+
+
+提示：成员节点的属性配置都可采用如上方式，关于其更多可配置属性信息请参考的官方文档：http://docs.mongodb.org/manual/reference/replica-configuration/。
+
+replica set console: 监听于28017
+
+
+
+
+
+
+
+
+节点变更：
+
+如果需要对副本集进行扩容，例如加入一台mongodb服务器进入副本集，需要先启动这个节点(最好是将数据事先拷贝一份启动，不然一个新的空的数据库进来同步可能会复制过多的数据而导致应用崩溃)
+
+例如：想将172.16.100.17节点移除，并新增172.16.100.18节点：
+首先将集群中的172.16.100.17节点移除:
+testSet0:PRIMARY> rs.remove("172.16.100.17:27017")
+Thu Oct 17 16:47:07.247 DBClientCursor::init call() failed
+Thu Oct 17 16:47:07.249 Error: error doing query: failed at src/mongo/shell/query.js:78
+Thu Oct 17 16:47:07.252 trying reconnect to 172.16.100.15:27017
+Thu Oct 17 16:47:07.255 reconnect 172.16.100.15:27017 ok
+testSet0:PRIMARY> rs.status()
+{
+	"set" : "testSet0",
+	"date" : ISODate("2013-10-17T08:47:11Z"),
+	"myState" : 1,
+	"members" : [
+		{
+			"_id" : 0,
+			"name" : "172.16.100.15:27017",
+			"health" : 1,
+			"state" : 1,
+			"stateStr" : "PRIMARY",
+			"uptime" : 2832,
+			"optime" : Timestamp(1381999627, 1),
+			"optimeDate" : ISODate("2013-10-17T08:47:07Z"),
+			"self" : true
+		},
+		{
+			"_id" : 1,
+			"name" : "172.16.100.16:27017",
+			"health" : 1,
+			"state" : 2,
+			"stateStr" : "SECONDARY",
+			"uptime" : 4,
+			"optime" : Timestamp(1381999627, 1),
+			"optimeDate" : ISODate("2013-10-17T08:47:07Z"),
+			"lastHeartbeat" : ISODate("2013-10-17T08:47:11Z"),
+			"lastHeartbeatRecv" : ISODate("2013-10-17T08:47:11Z"),
+			"pingMs" : 1,
+			"lastHeartbeatMessage" : "syncing to: 172.16.100.15:27017",
+			"syncingTo" : "172.16.100.15:27017"
+		}
+	],
+	"ok" : 1
+}
+
+
+接着配置启动172.16.100.18节点，它会自动复制数据。如果数据量过大，还是建议事先通过其它机制同步数据。
+
+testSet0:PRIMARY> rs.add("172.16.100.18")
+{ "ok" : 1 }
+testSet0:PRIMARY> rs.status();
+{
+	"set" : "testSet0",
+	"date" : ISODate("2013-10-17T08:52:40Z"),
+	"myState" : 1,
+	"members" : [
+		{
+			"_id" : 0,
+			"name" : "172.16.100.15:27017",
+			"health" : 1,
+			"state" : 1,
+			"stateStr" : "PRIMARY",
+			"uptime" : 3161,
+			"optime" : Timestamp(1381999957, 1),
+			"optimeDate" : ISODate("2013-10-17T08:52:37Z"),
+			"self" : true
+		},
+		{
+			"_id" : 1,
+			"name" : "172.16.100.16:27017",
+			"health" : 1,
+			"state" : 2,
+			"stateStr" : "SECONDARY",
+			"uptime" : 333,
+			"optime" : Timestamp(1381999957, 1),
+			"optimeDate" : ISODate("2013-10-17T08:52:37Z"),
+			"lastHeartbeat" : ISODate("2013-10-17T08:52:39Z"),
+			"lastHeartbeatRecv" : ISODate("2013-10-17T08:52:40Z"),
+			"pingMs" : 1,
+			"syncingTo" : "172.16.100.15:27017"
+		},
+		{
+			"_id" : 2,
+			"name" : "172.16.100.18:27017",
+			"health" : 1,
+			"state" : 6,
+			"stateStr" : "UNKNOWN",
+			"uptime" : 3,
+			"optime" : Timestamp(0, 0),
+			"optimeDate" : ISODate("1970-01-01T00:00:00Z"),
+			"lastHeartbeat" : ISODate("2013-10-17T08:52:39Z"),
+			"lastHeartbeatRecv" : ISODate("1970-01-01T00:00:00Z"),
+			"pingMs" : 1,
+			"lastHeartbeatMessage" : "still initializing"
+		}
+	],
+	"ok" : 1
+}
+
+
+
+
+
+假设收拾好了172.16.100.17节点，还想让其上线，则可以重新将其添加至集群中，它会自动复制已经更新的数据。例如，先在当前的主节点上添加数据，而后在后来又重新上线的节点上查询。
+
+
+
+
+
+
+
+
+MongoDB管理
+
+6.1 配置mongod
+
+mongod在启动时通过命令行选项或配置文件(如/etc/mongod.conf)接口读取其配置属性。这两种配置接口能够提供相同的功能，因此，管理员可以根据偏好进行选择。如果要通过配置文件读取配置选项，则可以在启动mongod时使用--config或-f选项来指定配置文件的位置。
+
+6.1.1 mongod的基本配置参数
+
+配置mongod的基本工作属性可通过一些常用参数进行。
+
+	fork={true|false}: 是否以daemon方式启动mongod，为true表示其启动后其自动转入后台工作；
+	bind_ip=IP：指定mongod监听的IP地址；
+	port=PORT：指定mongod监听的端口，默认为27017；
+	quiet={true|false}：是否工作于静默模式，以最小化的记录日志信息；正常条件下，应该设置为true，仅在调试时才将其设置为false；
+	dbpath=/PATH/TO/SOMEWHERE：指定mongod存储数据的位置，通常为/data/mongodb、/var/lib/mongodb或/srv/mongodb等；
+	logpath=/PATH/TO/SOMEFILE：日志文件路径，例如/var/log/mongodb/mongod.log；如果没有指定文件路径，日志信息则会发往标准输出；
+	logappend={true|false}：设定mongod在启动时是否不覆盖日志文件中的原有日志信息，true表示以追加方式记录日志，即不覆盖；
+	journal={true|false}：是否启动日志功能；日志功能是保证工作于单实例模式的mongod写入数据持久性的惟一途径；
+
+mongod的默认配置如下所示。
+
+	fork = true
+	bind_ip = 127.0.0.1
+	port = 27017
+	quiet = true
+	dbpath = /srv/mongodb
+	logpath = /var/log/mongodb/mongod.log
+	logappend = true
+	journal = true
+
+6.1.2 安全相关的配置参数
+
+数据库服务器的安全机制可有效防范非授权访问。
+
+	bind_ip=IP: 指定mongod监听的IP地址；生产环境中，通常需要将其指定为一个可接受外部客户端请求的IP地址，但应该仅开放需要接受客户端请求的IP地址；如果需要指定多个地址，彼此间使用逗号分隔即可；
+	nounixsocket={true|false}：是否禁用mongodb的Unix套接字功能，默认为启用；主要用于本地通信；
+	auth={true|false}：是否启用认证功能；如果要启用，远程客户端需要被授权方能访问mongodb服务器；
+
+6.1.3 调试类参数
+
+为了获释mongod的动作细节，可以通过调整其调试类参数进行。
+
+	slowms=#：慢查询阈值，单位为毫秒，主是为profiler所用到；默认为100ms；
+	profile=#：指定profile的级别，默认没有启用；建议仅在需要评估mongod性能时启用；
+	verbose={true|false}：是否向日志中记录调试信息，生产环境不建议启用；其可以简写为v，并且能够通过增加v的个数来定义其详细信息级别；
+	diaglog=#：是否记录诊断信息至日志中；
+	objcheck={true|false}：是否强制mongod验正客户端发来的每一个请求；
+	cpu={true|false}：设定mongod报告写锁占用时间百分比的时间间隔，默认为4秒种；
+
+mongod的默认配置如下所示。
+
+	slowms = 50
+	profile = 3
+	verbose = true
+	diaglog = 3
+	objcheck = true
+	cpu = true
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Sharding: 
+
+越来越大的数据集及不断提升吞吐量的应用程序对单台mongodb服务器来讲是一个挑战————大量的查询很快即能耗尽CPU的计算能力，而较大的数据集存储需求也有可能很快超出单节点的存储能力。最终，工作集的大多超出了系统的RAM并给I/O带去巨大压力。数据库管理系统界解决此类问题通常有两类方案：向上扩展和水平扩展。
+
+sharding即是水平扩展的一种解决方案。它通过将数据集分布于多个也称作分片(shard)的节点上来降低单节点的访问压力。每个分片都是一个独立的数据库，所有的分片组合起来构成一个逻辑上的完整意义的数据库。因此，分片机制降低了每个分片的数据操作量及需要存储的数据量。
+
+
+
+
+
+
+
+
+
+
+Sharded Cluster Options
+
+1、configsvr
+Default: false
+
+Set this value to true to configure this mongod instance to operate as the config database of a shard cluster. When running with this option, clients will not be able to write data to any database other than config and admin. The default port for a mongod with this option is 27019 and the default dbpath directory is /data/configdb, unless specified.
+
+Changed in version 2.2: configsvr also sets smallfiles.
+
+Changed in version 2.4: configsvr creates a local oplog.
+
+Do not use configsvr with replSet or shardsvr. Config servers cannot be a shard server or part of a replica set.
+
+default port for mongod with this option is 27019 and mongod writes all data files to the /configdb sub-directory of the dbpath directory.
+
+2、shardsvr
+Default: false
+
+Set this value to true to configure this mongod instance as a shard in a partitioned cluster. The default port for these instances is 27018. The only effect of shardsvr is to change the port number.
+
+3、configdb
+Default: None.
+
+Format: <config1>,<config2><:port>,<config3>
+
+Set this option to specify a configuration database (i.e. config database) for the sharded cluster. You must specify either 1 configuration server or 3 configuration servers, in a comma separated list.
+
+This setting only affects mongos processes.
+
+Note mongos instances read from the first config server in the list provided. All mongos instances must specify the hosts to the configdb setting in the same order.
+If your configuration databases reside in more that one data center, order the hosts in the configdb setting so that the config database that is closest to the majority of your mongos instances is first servers in the list.
+
+Warning Never remove a config server from the configdb parameter, even if the config server or servers are not available, or offline.
+
+4、test
+Default: false
+
+Only runs unit tests and does not start a mongos instance.
+
+This setting only affects mongos processes and is for internal testing use only.
+
+5、chunkSize
+Default: 64
+
+The value of this option determines the size of each chunk of data distributed around the sharded cluster. The default value is 64 megabytes. Larger chunks may lead to an uneven distribution of data, while smaller chunks may lead to frequent and unnecessary migrations. However, in some circumstances it may be necessary to set a different chunk size.
+
+This setting only affects mongos processes. Furthermore, chunkSize only sets the chunk size when initializing the cluster for the first time. If you modify the run-time option later, the new value will have no effect. See the Modify Chunk Size in a Sharded Cluster procedure if you need to change the chunk size on an existing sharded cluster.
+
+6、localThreshold
+New in version 2.2.
+
+localThreshold affects the logic that mongos uses when selecting replica set members to pass reads operations to from clients. Specify a value to localThreshold in milliseconds. The default value is 15, which corresponds to the default value in all of the client drivers.
+
+This setting only affects mongos processes.
+
+When mongos receives a request that permits reads to secondary members, the mongos will:
+
+find the member of the set with the lowest ping time.
+construct a list of replica set members that is within a ping time of 15 milliseconds of the nearest suitable member of the set.
+If you specify a value for localThreshold, mongos will construct the list of replica members that are within the latency allowed by this value.
+The mongos will select a member to read from at random from this list.
+The ping time used for a set member compared by the localThreshold setting is a moving average of recent ping times, calculated, at most, every 10 seconds. As a result, some queries may reach members above the threshold until the mongos recalculates the average.
+
+See the Member Selection section of the read preference documentation for more information.
+
+7、noAutoSplit
+noAutoSplit is for internal use and is only available on mongos instances.
+
+New in version 2.0.7.
+
+noAutoSplit prevents mongos from automatically inserting metadata splits in a sharded collection. If set on all mongos, this will prevent MongoDB from creating new chunks as the data in a collection grows.
+
+Because any mongos in a cluster can create a split, to totally disable splitting in a cluster you must set noAutoSplit on all mongos.
+
+Warning With noAutoSplit enabled, the data in your sharded cluster may become imbalanced over time. Enable with caution.
+
+8、moveParanoia
+New in version 2.4.
+
+During chunk migrations, moveParanoia forces the mongod instances to save all documents migrated from this shard in the moveChunk directory of the dbpath. MongoDB does not delete data from this directory.
+
+Prior to 2.4, moveParanoia was the default behavior of MongoDB.
+
+
+
+
+
+
+
+
+
+
+一、配置config server
+
+默认监听27019端口。可以使用如下命令启动mongod进程。
+
+# mongod --configsvr --dbpath <path> --port <port>
+
+也可以直接编辑配置文件，如下：
+dbpath = /somewhere
+configsvr = true
+
+
+配置文件的配置格式：
+<setting> = <value>
+
+
+二、配置mongos实例 
+
+mongos属于轻量级应用，完全可以与其它服务运行于同一节点；启动时，需要为mongos实例指明各config服务器的访问地址；
+
+默认情况下，mongos监听于27017端口；可以使用如下命令启动mongos实例。
+
+# mongos --configdb <config server hostnames((IP|Hostname):Port)>
+
+也可以直接编辑配置文件：
+1、注释dbpath指令；
+2、添加configdb指令，并指定config服务器的地址；
+
+而后使用如下命令启动mongos实例：
+# mongos -f /etc/mongod.conf
+
+三、配置好各副本集或独立的mongod实例
+
+
+四、向分区集群中添加各shard服务器或副本集
+
+4.1 添加方式
+
+使用mongo命令连入mongos实例，命令类似如下格式：
+# mongo --host <hostname of machine running mongos> --port <port mongos listens on>
+
+接着使用sh.addShard()方法添加各shard至集群中。
+
+如果添加的shard是副本集，则需要使用如下格式：
+sh.addShard("RS_NAME/RS_SERVER:Port")
+
+例如：sh.addShard("rs0/mongodb0.magedu.com:27017")
+
+如果添加的shard是独立的mongod实例，则使用如下格式：
+sh.addShard("RS_SERVER:Port")
+
+4.2 使用示例
+
+查看shard集群的当前状态：
+mongos> sh.status()
+--- Sharding Status --- 
+  sharding version: {
+	"_id" : 1,
+	"version" : 3,
+	"minCompatibleVersion" : 3,
+	"currentVersion" : 4,
+	"clusterId" : ObjectId("526cde9aaddce4c0803865c8")
+}
+  shards:
+  databases:
+	{  "_id" : "admin",  "partitioned" : false,  "primary" : "config" }
+
+上述信息表明shard集群已经配置OK，但尚未有添加任何shard服务器。下面的过程将172.16.100.17这个独立运行的mongod添加进了shard集群中。
+
+mongos> sh.addShard("172.16.100.17")
+{ "shardAdded" : "shard0000", "ok" : 1 }
+mongos> sh.status()
+--- Sharding Status --- 
+  sharding version: {
+	"_id" : 1,
+	"version" : 3,
+	"minCompatibleVersion" : 3,
+	"currentVersion" : 4,
+	"clusterId" : ObjectId("526cde9aaddce4c0803865c8")
+}
+  shards:
+	{  "_id" : "shard0000",  "host" : "172.16.100.17:27017" }
+  databases:
+	{  "_id" : "admin",  "partitioned" : false,  "primary" : "config" }
+
+如上述过程，可以继续添加其它的shard服务器至集群中；例如，添加已经配置好的172.16.100.18这个独立运行的mongod添加进了shard集群中。如下所示：
+mongos> sh.status()
+--- Sharding Status --- 
+  sharding version: {
+	"_id" : 1,
+	"version" : 3,
+	"minCompatibleVersion" : 3,
+	"currentVersion" : 4,
+	"clusterId" : ObjectId("526cde9aaddce4c0803865c8")
+}
+  shards:
+	{  "_id" : "shard0000",  "host" : "172.16.100.17:27017" }
+	{  "_id" : "shard0001",  "host" : "172.16.100.18:27017" }
+  databases:
+	{  "_id" : "admin",  "partitioned" : false,  "primary" : "config" }
+
+
+五、启用sharding功能
+
+5.1 启动database的sharding功能
+
+mongodb的shard功能实现于collection级别，但若要在collection上启动shard，还需要事先其相关的数据库上启用之。在数据库上启用shard功能后，MongoDB会为其指定一个主shard。
+
+启用过程需要mongos实例上实现，可以使用sh.enableSharding()方法，也可以使用db.runCommand()的“enableSharding命令，它们的使用格式分别如下所示：
+
+sh.enableSharding("<database>")
+db.runCommand( { enableSharding: <database> } )
+
+5.2 在collection上进行sharding
+
+
+
+
+
+for (i = 1; i <= 1000000; i++) db.mycoll.insert({age:(i%100), name:"magedu_user"+i, address:i+", Some Road, Zhengzhou, Henan", country:"China", course:"cousre"+"(i%12)"})
+
+
+
+php --> mongodb
+
+phpize
+configure
+
+CAP: 一致性、可用性、分区容错性
+
+一致性：
+	强一致性
+	弱一致性：
+	最终一致性：时间窗口
+
+实现一致性：
+	NRW法则
+	两段式提交
+	paxos算法
+
+索引：特殊的数据结构，
+	顺序索引: B+树, (2/n,n)
+	哈希索引：散列函数，其键值会落在某hash bucket上；
+
+	顺序索引：左前缀，范围查询
+	哈希索引：精确匹配，用于=, <=>, IN
+
+db.mycoll.ensureIndex(keypattern)
+	{Name: 1}
+	{Name: "hashed"}
+
+重复索引：
+	name, age, gender, preferbooks, address
+
+	name, 
+	name, age
+
+覆盖索引：
+	name, age
+
+db.mycoll.find().hint().explain()
+
+mysql> explain SELECT 
+
+复制集群:
+	master/slave
+	replica set
+		arbiter: 仅参与选举，不持有任何数据；
+		0优先级的节点：持有数据，参与选举，但不能成为主节点；
+
+		replSet=
+
+sharding集群:
+	sharding的目的：
+
+	读、写
+		读：不离散
+		写：离散
+
+	mongodb: collection级别
+	sharding key: collection索引
+
+	config server: 元数据服务器，3台 (zookeeper)
+	mongos: 路由, Router
+	shard: standalone, replica set
+
+	{name: 1, age: 1, preferbooks}
+
+
+name: 
+
+
+选择sharding key的标准：
+	应该在哪儿存储数据？
+	应该从哪儿得到希望的数据？
+
+基本法则：
+	sharding key应该是主键；
+	sharding key应该能尽量保证避免跨分片查询；
+
+
+chunk: 64M
+
+rebalance: 重新均衡；
+
+sharding: 新增shard，移除shard
+
+
+mongodump, mongorestore
+mongoexport, mongoimport
+
+
+
+
+mapreduce: 聚合
+GridFS: 
+
+
+
+
+

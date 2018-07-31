@@ -1,0 +1,1123 @@
+
+
+nginx, haproxy, lvs, mysql主从复制, zabbix, keepalived
+
+
+回顾：puppet类、模块、master/agent、kick
+
+MongoDB:
+	NoSQL: Not Only SQL
+
+	大数据存储问题：BigData
+		并行数据库：水平切分，分区查询
+		NoSQL数据库管理系统：非关系模型、分布式、不支持ACID数据库设计范式
+			简单数据模型
+			元数据和数据分离
+			弱一致性
+			高吞吐量
+			高水平扩展能力和低端硬件集群
+		NewSQL数据库管理系统
+			代表产品：Clustrix、GenieDB、ScaleBase、NimbusDB、Drizzle
+		云数据管理
+
+	大数据的分析处理：
+		MapReduce
+
+	CAP: 
+
+		最终一致性细分：
+			因果一致性
+			读自己写一致性
+			会话一致性
+			单调读一致性
+			时间轴一致性
+
+		ACID: 强一致性、隔离性、采用悲观保守的方法、难以变化；
+		BASE：弱一致性、可用性优先、采用乐观的方法、适应变化、更简单、更快
+
+		数据一致性的实现技术：
+			NRW
+			2PC
+			Paxos
+			Vector Clock
+
+	数据存储模型： www.nosql-databases.org
+		列式存储模型
+		文档数据模型
+		键值数据模型
+		图式数据模型
+
+		列式模型：
+			应用场景：在分布式文件系统之上提供支持随机读写的分布式数据存储
+			典型产品：HBase、Hypertable、Cassandra
+			数据模型：以“列”为中心进行存储，将同一列数据存储在一起
+			优点：快速查询、高可扩展性、易于实现分布式扩展
+
+		文档模型：
+			应用场景：非强事务需求的web应用
+			典型产品：MongoDB、ElasticSearch、CouchDB、CouchBase Server
+			数据模型：键值模型，存储为文档
+			优点：数据模型无须事先定义
+
+		键值模型：
+			应用场景：内容缓存，用于大量并行数据访问高负载场景
+			典型产品：DynamoDB、Riak、Redis
+			数据模型：基于哈希表实现的key-value
+			优点：查询迅速
+
+		图式模型：
+			应用场景：社交网络、推荐系统、关系图谱
+			典型产品：Neo4j、Infinite Graph
+			数据模型：图式结构
+			优点：适应于图式计算场景
+
+	MongoDB: NoSQL、文档存储、Json
+		database: 
+			支持多个database
+
+	CentOS RPM包下载地址：http://downloads-distro.mongodb.org/repo/redhat/os/x86_64/RPMS/
+
+	常用命令：
+		help
+		db.help()
+
+		db.stats(): 数据库状态
+		db.serverStatus(): mongodb数据库服务器状态
+
+		show dbs
+		show collections
+
+		db.getCollectionNames()
+
+		db.collection.stats()
+
+	DDL, DML
+
+	JSON: JavaScript Object Notation
+		名称/值对象的集合
+		值的有序列表
+
+	find()的高级用法：
+		比较操作：
+			$gt, 语法格式 {filed: {$gt: VALUE}}
+			$gte
+			$lt
+			$lte
+			$ne
+
+			$in，语法格式{filed: {$in: [<value>]}}
+			$nin
+
+		组合条件：逻辑运算
+			$or: 或运算，语法格式{$or: [{<expression1>},...]}
+			$and: 与运算
+			$not: 非运算
+			$nor: 反运算，返回不符指定条件的所有文档
+
+		元素查询：根据文档中是否存在指定的字段进行的查询
+			$exists: 语法格式{$filed:{$exists:<boolean>}}
+			$mod: 
+			$type: 返回指定字段的值的类型为指定类型的文档，语法格式{field:{$type: <BSON type>}}
+				1 Double, 2 String, 3 Object, Array, Binary data, Undefined, Boolean, Date, Null, Regular Expression, JavaScript, Timestamp
+
+	更新操作：
+		db.mycoll.update()
+			$set: 修改字段的值为新指定的值；语法格式({filed: value}, {$set: {filed: new_value}})
+			$unset: 删除指定字段；语法格式({field: value}, {$unset: {field1, field2,...}})
+			$rename: 更改字段名，语法格式({$rename: {oldname: newname, oldname: newname}})
+			$inc
+
+	删除操作：
+		db.mycoll.remove(<query>,<justOne>)
+
+	删除collection:
+		db.mycoll.drop()
+
+	删除database:
+		db.dropDatabase()
+
+	php+mongodb: 
+		php的mongodb扩展
+
+
+回顾：
+	MongoDB: NoSQL、文档存储(JSON object)
+
+	NoSQL:
+		列式：hbase、hypertable
+		文档：mongodb、CouchDB
+		键值：redis、Riak
+		图式：Neo4j
+
+	mongod, mongo
+		db.stats()、show dbs、show collections、db.getCollectionNames()
+
+		CRUD: 
+			db.mycoll.insert({key1: value1, key2: value2, key3: {key11: value11, key: value12}})
+			db.mycoll.find():
+				比较操作：$gt, {field: {$gt: value}}、$gte、$lt、$lte、$ne、$in、$nin
+				逻辑操作：$or, $and, $not,  {$or: [{},{}]}
+				存在性判断：$exists
+				值类型判断: $type
+
+			db.mycoll.find().limit(), count(), skip()
+			db.mycoll.findOne()
+			db.mycoll.update()
+			db.mycoll.remove()
+
+		db.mycoll.drop()、db.dropDatabase()
+
+	索引：
+		类型：B+ Tree、hash、空间索引、全文索引
+
+		MongoDB索引类型：
+			单字段索引
+			组合索引（多字段索引）
+			多键索引
+			空间索引
+			文本索引
+			hash索引
+
+		MongoDB与索引相关的方法：
+			db.mycoll.ensureIndex(field[,options])
+				name、unique、dropDups、sparse
+			db.mycoll.dropIndex(index_name)
+			db.mycoll.dropIndexes()
+			db.mycoll.getIndexes()
+			db.mycoll.reIndex()
+
+	Mongod的常用选项：
+		fork={true|false}: mongod是否运行在后台
+		bind_ip=IP：指定监听的地址
+		port=PORT: 指定监听的端口
+
+		maxConns=: 并发最大连接数
+
+	MongoDB的复制功能：
+		两种类型：
+			master/slave
+			replica set: 复制集、副本集
+				服务于同一数据集的多个mongodb实例
+
+				主节点将数据修改操作保存至oplog中
+					arbiter: 仲裁者
+
+			工作特性：至少三个，且应该为奇数个节点；可以使用arbiter来参与选举；
+				heartbeat（2s）, 自动失效转移（通过选举方式实现）
+
+			复制集的中特殊类型的节点：
+				0优先级的节点：冷备节点，不会被选举成为主节点，但可以参与选举；
+				被隐藏的从节点：首先是一个0优先级的从节点，且对客户端不可见；
+				延迟复制的从节点：首先是一个0优先级的从节点，且复制时间落后于主节点一个固定时长；
+				arbiter: 
+
+			MongoDB的复制架构：
+				oplog
+				heartbeat
+
+				oplog: 大小固定的文件，存储在local数据库
+
+					初始同步(initial sync)
+					回滚后追赶(post-rollback catch-up)
+					切分块迁移(sharding chunk migrations)
+
+				local: 存放了副本集的所有元数据和oplog；用于存储oplog的是一个名为oplog.rs的collection；
+					oplog.rs的大小依赖于OS及文件系统；但可以自定义其大小oplogSize
+
+			Mongo的数据同步类型：
+				初始同步：
+					节点没有任何数据时
+					节点丢失副本复制历史
+				复制
+				
+				初始同步的步骤：
+					1、克隆所有数据库
+					2、应用数据集的所有改变：复制oplog并应用于本地
+					3、为所有collection构建索引
+
+
+		副本集的重新选举的影响条件：
+			心跳信息
+			优先级
+			optime
+			网络连接
+			网络分区
+
+		选举机制：
+			触发选举的事件：
+				新副本集初始化时
+				从节点联系不到主节点时
+				主节点“下台”时
+					主节点收到stepDown()命令时
+					某从节点有更高的优先级且已经满足成主节点其它所有条件
+					主节点无法联系到副本集的“多数方”
+
+
+	MongoDB的分片:
+			CPU
+			Memory
+			IO
+
+		MySQL: Gizzard, HiveDB, MySQL Proxy + HSACLE, Hibernate Shard, Pyshards
+
+		分片架构中的角色：
+			mongos: Router
+			config server: 元数据服务器
+			shard: 数据节点，也称mongod实例
+
+			zookeeper
+
+		基于范围切片
+			range
+		基于列表切片
+			list
+		基于hash切片
+			hash
+
+			写离散，读集中
+
+			db.enableSharding("testdb")
+				
+
+
+回顾：
+	Linux系统：CPU（MMU）、Memory、IO（磁盘IO，网络IO）
+	虚拟化：
+		CPU
+		Memory
+		IO
+
+	VMM：hypervisor
+		Type-I
+		Type-II
+
+	Xen: Dom0, DomU
+	KVM: 模块, hypervisor
+		qemu (emulator)
+
+	libvirtd/virsh
+
+	container: 容器
+		增强版的chroot
+		每个用户空间，独立名称空间
+		lxc, openvz
+
+		docker: lxc
+
+Why？
+	弹性计算
+
+OpenStack: IaaS的一种开源实现；
+	
+	User: 
+		CLI: nova-cli, glance-cli, keystone-cli
+		GUI: Horizon
+
+	Juno 
+		Neutron: 
+			分布式虚拟路由
+			L3高可用
+			ipv6子网
+
+		Cinder:
+			支持卷复制
+			支持一致性组
+			支持卷资源池
+			支持基于卷数量的调度算法
+
+回顾：
+	IaaS、PaaS、SaaS
+
+	OpenStack:
+		Identity: Keystone
+		Image: Glance
+		Compute: Nova
+		Block Storage: Cinder
+		Object Storage: Swift
+		Networking: Neutron
+		DashBoard: Horizon
+		Metering: Ceilometer
+		Orchestration: Heat
+		Sahara
+		Trove
+
+	User:
+		CLI
+		GUI
+
+	Openstack部署：
+		Fuel
+		DevStack
+		RackStack
+
+		puppet
+
+	http://172.16.100.7:5000/v2.0/
+
+	icehouse, juno
+		http://172.16.0.1/openstack/epel-6/icehouse
+
+	icehouse安装文档路径：
+		http://docs.openstack.org/icehouse/install-guide/install/yum/content/keystone-install.html
+
+	Keystone: 
+		CLI:
+			keystone
+			keystone-manage
+			keystone-all
+
+			keystone访问keystone服务端时需要认证：
+				token:
+					OS_SERVICE_TOKEN
+					OS_SERVICE_ENDPOINT
+
+					--os-token TOKEN --os-endpoint ENDPOINT
+				credentails:
+
+	Glance:
+		Image file的数据有两类：
+			元数据：存放于MySQL
+			映像文件：backend store
+				FileSystem
+				Swift, GlusterFS
+				S3
+
+		--> glance-api --> glance-registry
+		--> glance-api --> backend store
+
+	disk_formats=ami,ari,aki,vhd,vmdk,raw,qcow2,vdi,iso
+
+	container_formats=ami,ari,aki,bare,ovf,ova
+
+	default_store=file
+	filesystem_store_datadir=/var/lib/glance/images/
+
+		glance-api 9292
+		glance-registry 9191
+
+	自己创建映像文件模板：
+		使用qemu-img创建空白映像文件；
+		使用kvm或qemu以此映像文件为硬盘设备，启动安装过程，为其安装OS；
+		登录此OS，做好各项所需的配置；
+		登录此OS，安装cloud-init，运行其初始化命令；
+
+总结：
+	keystone, glance
+
+
+回顾：OpenStack
+	KeyStone: Identity Service
+		token
+			keystone cli
+				环境变量
+				命令行选项
+		credentials
+
+		service catalog
+			service
+			endpoint：URL
+
+	Glance: Image Service
+		glance-api
+		glance-registry
+
+		glance, glance-manage
+
+		元数据：database
+		映像文件：backend store
+			FileSystem
+			Swift
+			GlusterFS
+			Cinder
+			S3
+
+	配置方式：
+		openstack-config
+		编辑配置文件
+
+	Nova
+
+
+keystone user-create --name=nova --pass=nova --email=nova@magedu.com
+keystone user-role-add --user=nova --tenant=service --role=admin
+
+ openstack-config --set /etc/nova/nova.conf database connection mysql://nova:nova@controller/nova
+ openstack-config --set /etc/nova/nova.conf DEFAULT auth_strategy keystone
+ openstack-config --set /etc/nova/nova.conf keystone_authtoken auth_uri http://controller:5000
+ openstack-config --set /etc/nova/nova.conf keystone_authtoken auth_host controller
+ openstack-config --set /etc/nova/nova.conf keystone_authtoken auth_protocol http
+ openstack-config --set /etc/nova/nova.conf keystone_authtoken auth_port 35357
+ openstack-config --set /etc/nova/nova.conf keystone_authtoken admin_user nova
+ openstack-config --set /etc/nova/nova.conf keystone_authtoken admin_tenant_name service
+ openstack-config --set /etc/nova/nova.conf keystone_authtoken admin_password nova
+
+ for svc in api cert consoleauth scheduler conductor novncproxy; do service openstack-nova-${svc} start; chkconfig openstack-nova-${svc} on; done
+
+
+yum install openstack-nova-compute openstack-utils
+
+
+
+
+nova
+
+802.1q tag
+	vlan: 1:4094
+
+tap: 
+
+
+
+回顾：
+	nova
+		nova-api, nova-scheduler, nova-conduct, nova-console, nova-consoleauth, nova-cert
+
+		nova-compuet (hypervisor)
+
+	network namespace: 网络名称空间
+		ip link, ip netns, brctl
+
+		仅主机、虚拟网桥、桥接、NAT
+
+		brctl: Linux Bridge
+
+	OpenVSwitch: 简称OVS
+		802.1q
+		NetFlow, sFlow, QoS
+		GRE, VXLAN
+		OpenFlow
+
+	OpenVSwitch: 
+		ovs-vswitched
+		ovsdb-server:　配置信息库
+
+		ovs-vsctl: 获取或更改ovs-vswitched的配置信息
+		ovs-ofctl：用来控制ovs作为OpenFlow交换工作时相关配置；
+		ovs-appctl：用于向ovs守护进程发送命令
+
+
+GRE: Generic Routing Encapsulation
+
+总结：
+	VLAN
+	GRE：
+		注意：承载gre隧道报文的那个物理接口不能添加到桥设备
+
+	keystone user-create --name neutron --pass neutron --email neutron@magedu.com
+	keystone user-role-add --user neutron --tenant service --role admin
+
+
+openstack-config --set /etc/neutron/neutron.conf database connection \
+  mysql://neutron:neutron@controller/neutron
+ openstack-config --set /etc/neutron/neutron.conf DEFAULT \
+  auth_strategy keystone
+ openstack-config --set /etc/neutron/neutron.conf keystone_authtoken \
+  auth_uri http://controller:5000
+ openstack-config --set /etc/neutron/neutron.conf keystone_authtoken \
+  auth_host controller
+ openstack-config --set /etc/neutron/neutron.conf keystone_authtoken \
+  auth_protocol http
+ openstack-config --set /etc/neutron/neutron.conf keystone_authtoken \
+  auth_port 35357
+ openstack-config --set /etc/neutron/neutron.conf keystone_authtoken \
+  admin_tenant_name service
+ openstack-config --set /etc/neutron/neutron.conf keystone_authtoken \
+  admin_user neutron
+ openstack-config --set /etc/neutron/neutron.conf keystone_authtoken \
+  admin_password neutron
+
+ openstack-config --set /etc/neutron/neutron.conf DEFAULT \
+  rpc_backend neutron.openstack.common.rpc.impl_qpid
+ openstack-config --set /etc/neutron/neutron.conf DEFAULT \
+  qpid_hostname controller
+
+ openstack-config --set /etc/neutron/neutron.conf DEFAULT \
+  notify_nova_on_port_status_changes True
+ openstack-config --set /etc/neutron/neutron.conf DEFAULT \
+  notify_nova_on_port_data_changes True
+ openstack-config --set /etc/neutron/neutron.conf DEFAULT \
+  nova_url http://controller:8774/v2
+ openstack-config --set /etc/neutron/neutron.conf DEFAULT \
+  nova_admin_username nova
+ openstack-config --set /etc/neutron/neutron.conf DEFAULT \
+  nova_admin_tenant_id $(keystone tenant-list | awk '/ service / { print $2 }')
+ openstack-config --set /etc/neutron/neutron.conf DEFAULT \
+  nova_admin_password nova
+ openstack-config --set /etc/neutron/neutron.conf DEFAULT \
+  nova_admin_auth_url http://controller:35357/v2.0
+
+ openstack-config --set /etc/neutron/neutron.conf DEFAULT \
+  core_plugin ml2
+ openstack-config --set /etc/neutron/neutron.conf DEFAULT \
+  service_plugins router
+
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini ml2 \
+  type_drivers gre
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini ml2 \
+  tenant_network_types gre
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini ml2 \
+  mechanism_drivers openvswitch
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini ml2_type_gre \
+  tunnel_id_ranges 1:1000
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini securitygroup \
+  firewall_driver neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini securitygroup \
+  enable_security_group True
+
+ openstack-config --set /etc/nova/nova.conf DEFAULT \
+  network_api_class nova.network.neutronv2.api.API
+ openstack-config --set /etc/nova/nova.conf DEFAULT \
+  neutron_url http://controller:9696
+ openstack-config --set /etc/nova/nova.conf DEFAULT \
+  neutron_auth_strategy keystone
+ openstack-config --set /etc/nova/nova.conf DEFAULT \
+  neutron_admin_tenant_name service
+ openstack-config --set /etc/nova/nova.conf DEFAULT \
+  neutron_admin_username neutron
+ openstack-config --set /etc/nova/nova.conf DEFAULT \
+  neutron_admin_password neutron
+ openstack-config --set /etc/nova/nova.conf DEFAULT \
+  neutron_admin_auth_url http://controller:35357/v2.0
+ openstack-config --set /etc/nova/nova.conf DEFAULT \
+  linuxnet_interface_driver nova.network.linux_net.LinuxOVSInterfaceDriver
+ openstack-config --set /etc/nova/nova.conf DEFAULT \
+  firewall_driver nova.virt.firewall.NoopFirewallDriver
+ openstack-config --set /etc/nova/nova.conf DEFAULT \
+  security_group_api neutron
+
+
+
+
+
+
+
+
+
+
+
+
+
+ openstack-config --set /etc/neutron/neutron.conf DEFAULT \
+  auth_strategy keystone
+ openstack-config --set /etc/neutron/neutron.conf keystone_authtoken \
+  auth_uri http://controller:5000
+ openstack-config --set /etc/neutron/neutron.conf keystone_authtoken \
+  auth_host controller
+ openstack-config --set /etc/neutron/neutron.conf keystone_authtoken \
+  auth_protocol http
+ openstack-config --set /etc/neutron/neutron.conf keystone_authtoken \
+  auth_port 35357
+ openstack-config --set /etc/neutron/neutron.conf keystone_authtoken \
+  admin_tenant_name service
+ openstack-config --set /etc/neutron/neutron.conf keystone_authtoken \
+  admin_user neutron
+ openstack-config --set /etc/neutron/neutron.conf keystone_authtoken \
+  admin_password neutron
+
+
+ openstack-config --set /etc/neutron/neutron.conf DEFAULT \
+  rpc_backend neutron.openstack.common.rpc.impl_qpid
+ openstack-config --set /etc/neutron/neutron.conf DEFAULT \
+  qpid_hostname controller
+
+ openstack-config --set /etc/neutron/neutron.conf DEFAULT \
+  core_plugin ml2
+ openstack-config --set /etc/neutron/neutron.conf DEFAULT \
+  service_plugins router
+
+ openstack-config --set /etc/neutron/l3_agent.ini DEFAULT \
+  interface_driver neutron.agent.linux.interface.OVSInterfaceDriver
+ openstack-config --set /etc/neutron/l3_agent.ini DEFAULT \
+  use_namespaces True
+
+ openstack-config --set /etc/neutron/dhcp_agent.ini DEFAULT \
+  interface_driver neutron.agent.linux.interface.OVSInterfaceDriver
+ openstack-config --set /etc/neutron/dhcp_agent.ini DEFAULT \
+  dhcp_driver neutron.agent.linux.dhcp.Dnsmasq
+ openstack-config --set /etc/neutron/dhcp_agent.ini DEFAULT \
+  use_namespaces True
+
+ openstack-config --set /etc/neutron/dhcp_agent.ini DEFAULT \
+  dnsmasq_config_file /etc/neutron/dnsmasq-neutron.conf
+
+
+   openstack-config --set /etc/neutron/metadata_agent.ini DEFAULT \
+    auth_url http://controller:5000/v2.0
+   openstack-config --set /etc/neutron/metadata_agent.ini DEFAULT \
+    auth_region regionOne
+   openstack-config --set /etc/neutron/metadata_agent.ini DEFAULT \
+    admin_tenant_name service
+   openstack-config --set /etc/neutron/metadata_agent.ini DEFAULT \
+    admin_user neutron
+   openstack-config --set /etc/neutron/metadata_agent.ini DEFAULT \
+    admin_password neutron
+   openstack-config --set /etc/neutron/metadata_agent.ini DEFAULT \
+    nova_metadata_ip controller
+   openstack-config --set /etc/neutron/metadata_agent.ini DEFAULT \
+    metadata_proxy_shared_secret METADATA_SECRET
+
+openstack-config --set /etc/nova/nova.conf DEFAULT \
+      service_neutron_metadata_proxy true
+openstack-config --set /etc/nova/nova.conf DEFAULT \
+      neutron_metadata_proxy_shared_secret METADATA_SECRET
+
+
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini ml2 \
+  type_drivers gre
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini ml2 \
+  tenant_network_types gre
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini ml2 \
+  mechanism_drivers openvswitch
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini ml2_type_gre \
+  tunnel_id_ranges 1:1000
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini ovs \
+  local_ip 10.0.1.9
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini ovs \
+  tunnel_type gre
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini ovs \
+  enable_tunneling True
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini securitygroup \
+  firewall_driver neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini securitygroup \
+  enable_security_group True
+
+
+
+	Compute: 
+		设置虚拟网络接口插件的超时时长：
+		 openstack-config --set /etc/nova/nova.conf DEFAULT vif_plugging_timeout 10
+		 openstack-config --set /etc/nova/nova.conf DEFAULT vif_plugging_is_fatal False
+
+
+		为nova指定glance-api和glance-registry主机：
+		# openstack-config --set /etc/nova/nova.conf DEFAULT glance_host controller
+
+
+	Neutron Server:
+		注意：如果需要ml2支持更多的驱动类型，可将上面一组中的命令的第一个和第二个分别更换为：
+		 openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini ml2 type_drivers local,flat,vlan,gre,vxlan
+		 openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini ml2 tenant_network_types vlan,gre,vxlan
+
+
+
+	Network Node:
+	修改桥设备br-ex的bridge-id的属性值为br-ex
+		# ovs-vsctl br-set-external-id br-ex bridge-id br-ex
+
+
+ service neutron-openvswitch-agent start
+ service neutron-l3-agent start
+ service neutron-dhcp-agent start
+ service neutron-metadata-agent start
+ chkconfig neutron-openvswitch-agent on
+ chkconfig neutron-l3-agent on
+ chkconfig neutron-dhcp-agent on
+ chkconfig neutron-metadata-agent on
+
+
+ nova boot --flavor m1.cirros --image cirros-0.3.3-i386 --nic net-id=b78e03dd-fff3-4354-85bc-d3f267a2b6b9 \
+   --security-group default --key-name demo-key demo-i1
+
+
+
+
+
+
+
+
+
+ openstack-config --set /etc/neutron/neutron.conf DEFAULT \
+  auth_strategy keystone
+ openstack-config --set /etc/neutron/neutron.conf keystone_authtoken \
+  auth_uri http://controller:5000
+ openstack-config --set /etc/neutron/neutron.conf keystone_authtoken \
+  auth_host controller
+ openstack-config --set /etc/neutron/neutron.conf keystone_authtoken \
+  auth_protocol http
+ openstack-config --set /etc/neutron/neutron.conf keystone_authtoken \
+  auth_port 35357
+ openstack-config --set /etc/neutron/neutron.conf keystone_authtoken \
+  admin_tenant_name service
+ openstack-config --set /etc/neutron/neutron.conf keystone_authtoken \
+  admin_user neutron
+ openstack-config --set /etc/neutron/neutron.conf keystone_authtoken \
+  admin_password neutron
+
+
+ openstack-config --set /etc/neutron/neutron.conf DEFAULT \
+  rpc_backend neutron.openstack.common.rpc.impl_qpid
+ openstack-config --set /etc/neutron/neutron.conf DEFAULT \
+  qpid_hostname controller
+
+ openstack-config --set /etc/neutron/neutron.conf DEFAULT \
+  core_plugin ml2
+ openstack-config --set /etc/neutron/neutron.conf DEFAULT \
+  service_plugins router
+
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini ml2 \
+  type_drivers gre
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini ml2 \
+  tenant_network_types gre
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini ml2 \
+  mechanism_drivers openvswitch
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini ml2_type_gre \
+  tunnel_id_ranges 1:1000
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini ovs \
+  local_ip 10.0.1.8
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini ovs \
+  tunnel_type gre
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini ovs \
+  enable_tunneling True
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini securitygroup \
+  firewall_driver neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver
+ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini securitygroup \
+  enable_security_group True
+
+
+ openstack-config --set /etc/nova/nova.conf DEFAULT \
+  network_api_class nova.network.neutronv2.api.API
+ openstack-config --set /etc/nova/nova.conf DEFAULT \
+  neutron_url http://controller:9696
+ openstack-config --set /etc/nova/nova.conf DEFAULT \
+  neutron_auth_strategy keystone
+ openstack-config --set /etc/nova/nova.conf DEFAULT \
+  neutron_admin_tenant_name service
+ openstack-config --set /etc/nova/nova.conf DEFAULT \
+  neutron_admin_username neutron
+ openstack-config --set /etc/nova/nova.conf DEFAULT \
+  neutron_admin_password neutron
+ openstack-config --set /etc/nova/nova.conf DEFAULT \
+  neutron_admin_auth_url http://controller:35357/v2.0
+ openstack-config --set /etc/nova/nova.conf DEFAULT \
+  linuxnet_interface_driver nova.network.linux_net.LinuxOVSInterfaceDriver
+ openstack-config --set /etc/nova/nova.conf DEFAULT \
+  firewall_driver nova.virt.firewall.NoopFirewallDriver
+ openstack-config --set /etc/nova/nova.conf DEFAULT \
+  security_group_api neutron
+
+
+
+
+neutron subnet-create ext-net --name ext-subnet \
+  --allocation-pool start=172.16.200.181,end=172.16.200.200 \
+  --disable-dhcp --gateway 172.16.0.1 172.16.0.0/16
+
+neutron subnet-create demo-net --name demo-subnet \
+  --gateway 192.168.70.1 192.168.70.0/24
+
+
+回顾：
+	OpenStack：
+		IaaS云服务的开源实现
+		核心组件：keystone、glance、nova、neutron（quantum）、swift、cinder
+			服务：Identity、Image、Compute、Networing、Object storage、Block Storage
+
+	CloudStack：IaaS
+
+	部署过程：
+		keystone、glance、nova()、neutron(neutron-server、network node、nova-compute)、cinder（nova-volume）
+
+		neutron:
+			ext-net, demo-net
+
+			三个核心概念：
+				network: 二层的物理网络 （提供交换机、路由器）
+				subnet: 在二层物理网络规划使用IP网络
+					dhcp服务器，网关
+				port: 交换机、路由器的接口
+
+			OpenStack的网络类型：
+				Flat
+				FlatDHCP
+				VLAN
+				MultiHost
+
+	OpenStack: tenant
+		创建外部网络：
+			neutron net-create ext-net --shared --router:external=True
+
+			neutron subnet-create ext-net --name ext-subnet \
+  				--allocation-pool start=172.16.200.181,end=172.16.200.200 \
+  				--disable-dhcp --gateway 172.16.0.1 172.16.0.0/16
+
+  			neutron net-create demo-net
+
+  			neutron subnet-create demo-net --name demo-subnet \
+  					--gateway 192.168.70.1 192.168.60.0/24
+
+  		创建路由器：
+  			neutron router-create demo-router
+  		将tenant网络关联至路由器：把网关配置在路由接口上
+  			neutron router-interface-add demo-router demo-subnet
+  		将路由器接入外部网络：
+  			neutron router-gateway-set demo-router ext-net
+
+  	注意：
+  		1、CentOS 6.5自带的dnsmasq的版本较低，可能与icehouse一起工作时会有异常；要求2.5.9+
+  		2、各需要接入keystone进行认证的服务在指定其连入keystone的uri时，“auth_uri”参数马上会被废弃，要使用“identity_uri”来替换之；
+
+  	Neutron的功能：
+  		net, subnet, router, floatingip
+
+  		secgroup, vpn
+
+  		LBaaS: 负载均衡即服务
+  		FWaaS：防火墙即服务
+
+  	 nova boot --flavor m1.cirros --image cirros-0.3.3-i386 --nic net-id=$(nova net-list | awk '/demo-net/{print $2}') \
+  --security-group default --key-name demo-key demo-i1
+
+
+  终止实例：意味删除实例
+  	用户在实例上创建的文件在实例重新创建后依然存在：
+  		在众compute节后背后使用共享存储：解决方案是使用GlusterFS
+  		让各vm instance通过iSCSI访问外部的存储设备；
+  			终止实例，依然删除compute节点本地的映像文件；
+
+  	cinder: 统一的block device管理器
+  		按需管理卷
+
+  		两个角色：controller： cinder-api
+  				   volume: 可能有N个节点，每个节点都能提供块级别存储空间
+
+
+
+openstack-config --set /etc/cinder/cinder.conf \
+  database connection mysql://cinder:cinder@controller/cinder
+
+ keystone user-create --name=cinder --pass=cinder --email=cinder@magedu.com
+ keystone user-role-add --user=cinder --tenant=service --role=admin
+
+
+ openstack-config --set /etc/cinder/cinder.conf DEFAULT \
+  auth_strategy keystone
+ openstack-config --set /etc/cinder/cinder.conf keystone_authtoken \
+  identity_uri http://controller:5000
+ openstack-config --set /etc/cinder/cinder.conf keystone_authtoken \
+  auth_host controller
+ openstack-config --set /etc/cinder/cinder.conf keystone_authtoken \
+  auth_protocol http
+ openstack-config --set /etc/cinder/cinder.conf keystone_authtoken \
+  auth_port 35357
+ openstack-config --set /etc/cinder/cinder.conf keystone_authtoken \
+  admin_user cinder
+ openstack-config --set /etc/cinder/cinder.conf keystone_authtoken \
+  admin_tenant_name service
+ openstack-config --set /etc/cinder/cinder.conf keystone_authtoken \
+  admin_password cinder
+
+ openstack-config --set /etc/cinder/cinder.conf \
+  DEFAULT rpc_backend qpid
+ openstack-config --set /etc/cinder/cinder.conf \
+  DEFAULT qpid_hostname controller
+
+
+命令方式实现卷的创建和关联：
+	创建：cinder create 
+	关联：nova volume-attach
+
+
+
+# virt-install \
+    --name rhel5.8
+    --ram 512
+    --disk /VMs/rhel5.8.img
+    --import
+
+
+# qemu-kvm -name "rhel5.8" -m 512 \
+-smp 2 -boot d \
+-drive file=/VM/images/rhel5.8/hda,if=virtio,index=0,media=disk,format=qcow2 \
+-net nic,model=virtio,macaddr=52:54:00:A5:41:1E \
+-vga cirrus -balloon virtio
+
+
+
+简历：
+	指导思想：扬长避短，适度包装
+		眼前一亮
+
+	个人信息：
+	自我评价：
+	项目经历：
+	工作经验：
+	专业技能：
+
+
+GFS: Google File System （分布式存储） --> DFS
+MapReduce: 分布式计算框架              --> MapReduce
+BigTable: 列式存储                     --> HBase
+
+Hadoop: HDFS, MapReduce
+
+HDFS: 
+	用户空间的文件系统
+	基于本地文件系统工作：
+		ext4, xfs
+
+	部署模式：
+		本地模式：工在单机节点
+		伪分布式模式：工作单机节点，模拟实现分布式
+		分布式模式：
+
+
+	STORM, SPARK
+
+MapReduce: 
+	编程模型：FP
+	API
+	Runtime Framework
+
+	Cluster: 
+		JobTracker: dispatch job
+		TaskTracker: excute job
+
+	k-v:
+		split: k-v
+		kv-->mapper-->kv-->reducer-->kv
+
+		How are you?
+
+		kv: 
+			1, How do you do
+			切片：How, do, you, do
+				How: 1
+				do: 1
+				you: 1
+				do: 1
+		kv:
+			How: 1
+			do: 2
+			you: 1
+
+
+
+Hadoop: Java
+	HDFS Cluster
+	MapReduce Cluster
+
+	Hive(facebook): HiveSQL
+	Pig(Yahoo): 
+
+	MR1, MR2 
+
+回顾：
+	Hadoop v1:
+		common core
+		HDFS
+		MapReduce
+
+	Hadoop V2:
+		Common
+		HDFS
+		YARN
+		MapReduce
+
+	安装Hadoop:
+		官方的发行版：
+			http://mirrors.cnnic.cn/apache/hadoop/common/
+		CDH：Cloudera
+		Intel: 
+		HortonWorks
+
+	MRv1的局限性：
+		较差的扩展性
+		较差的可靠性：master是SPOF
+		资源利用率较低：基于slot资源分配
+		无法支持多种计算框架：
+
+	MRv2支持更多的计算框架：
+		MapReduce
+		Storm
+		Spark
+
+	YARN: 轻量级、弹性可扩展的计算平台
+		集群资源管理器
+
+	Hadoop 2.0的特性：
+		HDFS Append: 
+		HDFS RAID: DRFS
+			Erasue Codes
+		Symlink
+		Security: 基于kerboros认证，基于token的删除功能
+		NameNode Federation：并行扩展性
+		NameNode HA: 
+
+	Hadoop几大分支：
+		0.23.X
+		1.X
+		2.X
+
+	YARN:
+		Resource Manager：全局资源管理器，负责整个系统的资源管理和分配。两个组件：Scheduler，Applications Manager(ASM)
+		Node Manager(NM): 每个节点上都要运行的资源和任务管理器:
+			周期性地向RM报告本节点上的资源使用状况和各个container的运行状态
+			接收并处理各个AM发来的container的启动/停止的请求
+		Application Master (AM)：用户提交的每个应用程序都包含独立的AM，用于实现：
+			与RM调度器通信以获取资源
+			与NM通信以启动/停止任务
+			监控所有任务的运行状态
+		Container:
+			资源抽象，用于封装某节点上的资源，如cpu、内存、磁盘、网络等资源；
+
+
+Hadoop: HDFS
+	HBase: BigTable的clone
+		部署模式：
+			单机模式
+			伪分布式模式
+			完全分布式模式
+
+	HBase Shell
+
+Mahout: 建立可伸缩的机器学习算法；
+	频繁模式挖掘：挖掘数据中频繁出现的条目
+	聚类：将诸如文本、文档之类的数据分成局部相关的组；
+	分类：利用已经存在的分类文档训练分类器对未分类的文档进行分类；
+	推荐引擎：从用户的行为中发现用户可能喜欢的事物；
+	频繁子项挖掘：
+
+分布式日志收集工具：
+	scribe
+	chukwa
+	flume
+
+	sqoop: 把数据在关系型数据库与hadoop之间实现导入导出；
+
+Web日志收集、分析、展示系统：
+	logstash, elasticsearch, kibana
+
+R, RHadoop
+
+
+Hadoop: 批处理作业
+	吞吐能力较强
+
+Storm: 
+	twitter
+
+Spark:
+	Berkeley
+
+	shark: hive on spark
+
+	scala
+
+	基于内存的计算：
+		100* hadoop
+
+	基于磁盘的计算：
+		10* hadoop
+
+	
+
+
+
+
+
+
+
+
+
+
+

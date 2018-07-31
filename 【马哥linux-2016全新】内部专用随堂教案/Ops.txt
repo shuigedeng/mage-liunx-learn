@@ -1,0 +1,894 @@
+
+Ops: 
+	OS Povisoning: 安装OS
+		Cloud: image template
+		Physical: PXE
+	Configuration：配置
+		程序安装、配置、服务启动
+		ansible(python), puppet(ruby), saltstack(python)
+	Command and Control：批量操作
+		ansible, fabric
+
+	网站发布：webapp
+		不能影响用户体验
+		系统不能停机维护
+		不能造成系统故障导致网站完全不可用
+
+		灰度发布：
+			关闭direcotr上一批服务器-->关闭这些服务器上要更新的应用-->更新新版本的webapp代码至目标位置-->启动服务器上的应用--> 在director上启动这批服务器
+
+		自动化灰度发布
+
+	测试：自动化测试
+		Thoughtworks开发selenium
+
+	预发布验正：
+		新版代码先发布至预发布服务器（跟线上服务器上同，但未接入至director）
+
+	代码控制：
+		CVS, SVN, git
+
+	网站运行监控：
+		不允许没有监控的系统上线
+
+		监控数据采集：
+			用户行为日志
+			服务器性能监控
+			运行数据报告
+		监控管理：
+			异常报警
+			失效转移
+			自动优雅降低
+
+
+cobbler: 
+	安装并初始化：
+		1、依赖于epel源；
+		2、启动服务之后进行初始化：
+			# service httpd start
+			# service cobblerd start
+			# cobbler check
+
+		修复完成之后，重启cobblerd, 而后执行cobbler sync命令
+
+	配置cobber所依赖的服务：
+		dhcp: dhcp, dnsmasq
+		dns: bind, dnsmasq
+		rsync: rsync
+		tftp: tftp-server, cobbler自带的tftp
+
+		1、选定要使用程序；
+		2、确定是独立管理这些服务，还是由cobbler代为管理
+
+	cobbler:
+		distro: 可使用distro命令或import命令实现
+
+		cobbler上，distro可以有多个
+			同一个distro之上可定义多个profile
+				每个profile使用kickstart文件；
+
+	cobbler_web: 
+
+
+
+回顾：
+	cobbler：PXE
+	运维工具：
+		os provision, configuration, Command and Control
+		Monitoring
+
+监控：
+	传感器：
+
+	数据采集 --> 数据存储 --> 数据展示
+	报警：采集到的数据超出阈值
+
+		时间序列数据
+
+
+
+	开源监控工具：
+
+	SNMP：Simple Network Management Protocol
+
+	SNMP的工作模式：
+		NMS向agent采集数据
+		agent向NMS报告数据
+		NMS请求agent修改配置
+
+	SNMP的组件：
+		MIB：management information base
+		SMI：MIB表示符号
+		SNMP协议
+
+	SNMP协议的版本：
+		v1, v2, v3
+		v2c: NMS --> agent 
+			mageedu.com
+		v3: 认证、加密、解密
+
+	Linux: net-snmp程序包
+
+	NMS可发起操作：
+		Get, GetNext, Set, Trap
+
+		agent: Response
+
+		UDP
+			NMS: 161
+			agent: 162
+
+	分布式监控
+
+	著名的开源监控工具：zabbix, zennos, opennms, cacti, nagios(icinga), ganglia
+
+	监控功能的实现：
+		agent
+		ssh
+		SNMP
+		IPMI
+
+	zabbix: 有专用agent的监控工具
+		监控主机：
+			Linux、Windows、FreeBSD
+		网络设备：
+			SNMP, SSH(并非所有)
+
+
+	可监控对象：
+		设备/软件
+			设备：服务器、路由器、交换机、IO系统
+			软件：OS、网络、应用程序
+		偶发性小故障：
+			主机down机、服务不可用、主机不可达
+		严重故障：
+		主机性能指标
+		趋势：时间序列数据
+
+	数据存储：
+		cacti: rrd (round robin database)
+		zabbix: mysql, pgsql
+
+	zabbix架构中的组件：
+		zabbix-server: C语言
+		OS: zabbix-agent: C语言
+		zabbix-web：GUI，用于实现zabbix设定和展示
+		zabbix-proxy: 分布式监控环境中的专用组件
+		
+
+		zabbix-database: MySQL, PGSQL(postgreSQL)、Oracle、DB2、SQLite
+
+
+	zabbix产生的数据主要由四部分组成：
+		配置数据
+		历史数据：50Bytes
+		历史趋势数据: 128Bytes
+		事件数据: 130Bytes
+
+
+
+
+
+	智慧平台管理接口（Intelligent Platform Management Interface）原本是一种Intel架构的企业系统的周边设备所采用的一种工业标准。IPMI亦是一个开放的免费标准，使用者无需支付额外的费用即可使用此标准。
+			
+
+回顾：
+	zabbix组件：
+		zabbix-server
+		zabbix-database
+		zabbix-web
+		zabbix-agent
+		zabbix-proxy
+	zabbix逻辑组件：
+		主机组、主机
+		item（监控项）、appliction（应用）
+		graph（图形）
+		trigger（触发器）
+			event（事件）
+		action
+			notice
+			command
+		media
+		users(meida)
+	监控系统：
+		数据采集、数据存储、报警、数据可视化
+	zabbix:
+		database --> zabbix-server （zabbix_server.conf） --> zabbix-web(LAMP) --> http://zabbix-web-server/zabbix
+		zabbix-agent （zabbix-agent）
+
+	添加主机
+
+	agent: 161
+	nms: 162 (trap)
+	
+	历史数据：采样生成的数据
+	历史趋势数据：每小时的最大值、最小值、平均值、统计
+
+	As is: 不做任何处理
+	Delta(speed per second):   (value - prev_value)/(time - prev_time)
+		10: 12000, 20: 13000
+	Delta(simple change)：(value - prev_value)
+
+	Trigger:
+		名称中可以使用宏：
+			{HOST.HOST}, {HOST.NAME}, {HOST.IP}, {HOST.CONN}, {HOST.DNS}
+
+	Action有两类：
+		send message
+		command
+
+	添加host group, host, item, graph, trigger, action
+
+	总结：
+		一次监控的配置过程：host groups --> host --> appliction --> item --> trigger (一个item可以多个trigger) --> action (send message, command)
+
+		send message:
+			media type
+			zabbix user: 使用可用media type接收消息
+
+回顾：zabbix
+	host group, host, appliction, item, trigger, action
+	graph, screen
+
+	host: zabbix agent, snmp agent, ipmi agent, jmx
+
+	item: 
+
+	trigger: 表达式
+		host:key:function(parameters) operator value
+
+		event: 
+
+	action: 
+
+		conditions: action被执行的前提条件
+		operations: 
+
+			remote command：
+				重启服务、迁移虚拟机
+
+				注意：
+					1、不支持active模式的agent；
+					2、不支持代理模式；
+					3、可以使用宏；
+					4、要记得zabbix agent在被监控端以zabbix用户的身份运行，因此，执行远程命令时均以zabbix的身份进行；
+					5、zabbix server不会检测命令是否执行成功；
+					6、默认情况下zabbix-agent不支持远程命令的执行；
+						EnableRemoteCommand=1
+
+			自定义报警脚本：
+				zabbix_server.conf
+					AlertScriptsPath=/usr/lib/zabbix/alertscripts
+
+					报警脚本的特点：
+						接受三个参数：
+							$1: 指定的用户的“Media"中的"send to"所指向的位置；
+							$2: 为指定的action中的“default subject”；
+							$3: 为指定的action中的“default message”；
+
+					短信报警：通过报警脚本实现
+
+	宏：自动替换的文本模式
+		内置宏：{MACRO_NAME}
+		自定义宏：{$MACRO_NAME}
+			全局: adminitration --> general --> macros
+			模板: configration --> templates --> macros
+			主机: configration --> hosts --> macros
+
+			范围越小，优先级越高；
+
+
+	Windows上的agent：
+
+		Installing agent as Windows service
+
+			To install a single instance of Zabbix agent with the default configuration file c:\zabbix_agentd.conf:
+
+				zabbix_agentd.exe --install
+
+
+		If you wish to use a configuration file other than c:\zabbix_agentd.conf, you should use the following command for service installation:
+
+			zabbix_agentd.exe --config <your_configuration_file> --install
+		A full path to the configuration file should be specified.
+
+		Multiple instances of Zabbix agent can be installed as services like this:
+
+		  zabbix_agentd.exe --config <configuration_file_for_instance_1> --install --multiple-agents
+		  zabbix_agentd.exe --config <configuration_file_for_instance_2> --install --multiple-agents
+		  ...
+		  zabbix_agentd.exe --config <configuration_file_for_instance_N> --install --multiple-agents
+		The installed service should now be visible in Control Panel.
+
+
+		Uninstalling agent Windows service
+
+		To uninstall a single instance of Zabbix agent using the default configuration file:
+
+		   zabbix_agentd.exe --uninstall
+		To uninstall a single instance of Zabbix agent using a non-default configuration file:
+
+		   zabbix_agentd.exe --config <your_configuration_file> --uninstall
+		To uninstall multiple instances of Zabbix agent from Windows services:
+
+		  zabbix_agentd.exe --config <configuration_file_for_instance_1> --uninstall --multiple-agents
+		  zabbix_agentd.exe --config <configuration_file_for_instance_2> --uninstall --multiple-agents
+		  ...
+		  zabbix_agentd.exe --config <configuration_file_for_instance_N> --uninstall --multiple-agents
+
+	Trapper监控机制：
+		agent: zabbix-sender发送数据
+
+		注意：
+			1、主机名
+				create host --> name 
+			2、通过crontab周期性地通过zabbix-sender发送数据给服务端；
+			3、创建item时，item type为zabbix-trapper；key可以任何命名，但使用zabbix-sender发送数据时，使用key要与此处保持一致；
+
+	配置Linux支持通过SNMP监控：
+		安装net-snmp, net-snmp-utils
+
+		配置文件：/etc/snmp/snmpd.conf
+			定义community
+				com2sec 	localnet    172.16.0.0/16     community_name
+
+			指定community可使用的协议版本
+				group   GROUP_NAME   VERSION   sec.name 
+			授权
+				access  GROUP_NAME  ""      any       noauth    prefix  all none none
+			指定可查看MIB视图
+
+
+	key.key.key[*],command 
+
+	key.key.key[a,b,c]
+
+	网络发现：定义发现规则-->定义发现的action
+	自动注册：定义自动注册的action --> 确保agent端的ServerActive指向了zabbix-server；
+
+	Low-level discovery: 通过专用的key对网卡设备、文件系统、snmp的OID等实现自动发现；
+		net.if.discovery
+		vfs.fs.discovery
+		snmp.discovery
+
+	定义web监控：
+		1、创建application；
+		2、在对应的主机或模板上的"web"中，创建web senario
+
+回顾：
+	
+	远程命令、报警升级；snmp监控方式；windows监控；宏；用户参数；自动发现；自动注册；web监控；
+
+	单个zabbix-server
+		zabbix-agent；zabbix-database
+			item
+			partition
+
+	应用架构：
+		zabbix-node-agent
+		zabbix-proxy-agent
+
+	zabbix-2.4 不再支持zabbix-node-client机制
+
+	zabbix-proxy应用场景：
+		监控远程网络中的主机；
+		监控那些不具备可靠网络连接的网络中的主机；
+		zabbix-server负载过大；
+		简化分布式监控的维护操作；
+
+		zabbix-proxy使用中：
+			1、在zabbix-server上指定zabbix-proxy时必须使用zabbix-proxy配置文件的hostname参数所指定的名字；
+			2、各通过zabbix-proxy监控的zabbix-agent端，其server参数值列表中应该包含此proxy的地址；
+			3、zabbix-proxy要使用独立的数据库；
+
+	zabbix的使用：
+		定义trigger间依赖关系；
+
+		问题报警：
+
+	监控案例：
+		使用zabbix监控nginx所有连接状态；
+		使用zabbix自带的mysql模板监控一台mysql服务器；
+
+
+
+puppet: 开源的、新一代的集中化的配置管理工具；
+	目标状态
+	配置语言
+
+	Luke Kanies，puppet labs
+
+	bootstrap --> configuration --> command and control
+
+	puppet: ruby
+	saltstack: python
+
+	程序版本：
+		0.24.X, 0.25.X, 2.6.X (0.26), 2.7.X
+			3.0 --> 3.3.X
+
+		资源：资源申报
+
+		清单：
+
+		类：
+
+		模块：
+
+		站点清单：
+			以主机为核心：应用哪些模块
+
+	puppet的工作过程：
+		define --> test --> enforce --> report
+
+	puppet的应用环境：
+		开发环境
+		测试环境
+		生产环境
+
+	puppet的工作模型：
+		单机模型：
+			manifests --> complier --> catalog --> apply
+		master/agent模型：
+			集中式管理
+
+	puppet的认证机制：
+		/var/lib/puppet/ssl/
+
+	master/agent：
+		1、master启动时会为自己生成Key, 并签署证书；
+		2、agent首次启动要为自己生成Key, 生成证书签署请求；
+		3、master收到agent端的签署请求后，要先验正请求是否合法，而后做证书签署；
+
+回顾：
+	ruby、开源
+	master/agent, standalone
+	定义-->模拟-->强制-->报告
+
+	清单：资源
+
+puppet的基础应用：
+	类型、属性与状态同实现方式分离、仅指定目标状态
+
+	type {'title':
+		attribute 	=>	value,
+		...
+	}	
+
+	查看支持的资源类型：
+		puppet describe -l
+		puppet describe -s TYPE
+		puppet describe TYPE
+
+	定义资源的要点：
+		1、同一种类型中，资源名称必须惟一；
+		2、资源名称是否区分大小与取决于OS；
+
+	独特属性：
+		package {'nginx':
+			ensure	=> present,
+			name 	=> nginx,
+		}
+
+		命名变量：namevar，可省略，默认为title
+
+	常用类型：package, user, group, file, service, exec, cron, notify
+
+		notify {'title':
+			message 	=> 'something here',
+		}
+
+		package的常用属性：
+			ensure：present, installed, absent, latest
+			name: 包名
+			source：包文件的路径，可以是本地文件系统路径，也可以网络文件路径；
+				puppet:///modules/MODULE_NAME/FILENAME
+
+
+			package{'mysql':
+				ensurce 	=> installed,
+				provider 	=> msi,
+				source 		=> "D:\mysql\mysql-5.5.45.msi",
+				install_options => 	{'INSTALLDIR' => 'C:\mysql'},
+			}
+
+		file的常用属性：
+			content：直接生成的文件内容；
+				生成方式有三种：
+			ensurce: file, directory, link, absent
+			source: 通过指定的URL下载文件至目标位置；
+			target: 符号链接文件的链接目标；
+			owner: 属主
+			group: 属组
+			mode: 权限
+			path：文件路径
+			force: 强制删除；仅用于ensure为absent时；
+			purge: 清除指定目录中存在的，但是在puppet中未定义的文件；
+			replace：是否替换已经存在的文件；
+
+		service的常用属性：
+			ensure: 
+				true, running
+				false, stopped
+			enable: 是否开机自动启动
+			name:服务名称
+			path: 服务脚本路径
+
+			start:
+			stop:
+			restart: reload
+			status:
+
+		exec的常用属性：
+			用于执行命令；但通常仅应该用于必须执行命令才能完成操作时（puppet本身无法完成此功能）；
+
+			command: 要执行的命令，通常应该使用绝对路径；
+			path：为非绝对路径的命令指定搜索路径；
+			user:
+			group:
+
+			refresh: 默认为收到依赖的资源的事件时会重新执行此命令；但此属性可以修改此默认行为；
+			refreshonly: 此资源不会自动被执行，除非被依赖的资源发生了改变；
+			returns: 指定状态返回值；
+
+
+		group的常用属性：
+			ensure: present, absent
+			name: 组名
+			gid: GID
+			system: 是否为系统组；true, yes; false, no
+
+		user的常用属性：
+			ensure: present, absent
+			name: 用户名
+			uid: UID
+			system: 是否为系统用户；
+			gid: 基本组；
+			groups: 附加组；
+			home: 家目录；
+			password: 密码；
+			shell: 默认shell
+
+		cron的常用属性：
+			ensure: present, absent
+			command: 周期性执行的命令；
+			environment: 定义PATH环境变量；
+			hour: 
+			minute:
+			month:
+			monthday:
+			weekday: 
+
+		资源的特殊属性：
+			元参数：用于定义资源间的关系
+				before => Type['title']
+				require => Type['title']
+
+	puppet变量：
+		1、名称必须以$开头；赋值使用=，支持追加赋值+=；
+		2、变量名称引用的格式：简短名称和FQN
+			$scope::variable
+
+			$webserver=
+
+			package{"$webserver":
+				ensure 	=> present,
+			}
+
+		puppet的数据类型：
+			1、直接字串
+				可以用引号，也可以不用；
+				换行符为\n, windows中为\r\n
+			2、布尔型
+				true, false
+				其它有些类型在会自动转换为布尔型：
+					字符串：空串为false；
+					数字：都为true
+					未定义：false
+			3、数值：
+				整数
+				浮点数
+			4、数组：
+				$array=['red','blue','green']
+
+				$array[0]
+
+				package{['nginx','php','mysql-server']:
+					ensure 	=> present,
+				}
+
+			5、hash
+				{key1 => value1, key2 => value2,}
+				
+				key只能使用字符串
+				value可以puppet支持的任意数据类型
+
+				$dic = {mon => 'monday', 2 => 'tuesday'}
+					$dic[mon]
+
+			6、undef
+				不能加引号
+
+		puppet的变量类型：
+			自定义变量
+			facter变量：可在语言中直接调用
+			内置变量：
+				客户端内置：
+					$clientcert
+					$clientversion
+				服务端内置:
+					$servername
+					$serverip
+					$serverversion
+					$module_name: 模块名称
+
+		puppet的操作符：
+			$osfamily == 'CentOS'
+			$kernel in ['Linux','solaris','freebsd']
+
+		puppet的条件判断语句：
+			if
+			case
+			selector
+
+回顾：
+	puppet资源：notify, file, service, cron, user, group, exec, package
+		依赖关系：
+			before, require
+			notify, subscribe
+	puppet变量：自定义变量($VARNAME)、facts、内置
+	puppet数据类型：字符、数值、布尔、数组、哈希、undef、RegExp
+		/(?i-mx:PATTERN)/
+	puppet条件判断语句：if、case、selector、unless
+		unless CONDITION {
+			statement
+		}
+
+代码重用: class, module
+	重用：
+
+	类：命名的puppet代码块，需要时可通过名称进行调用；
+		class my_class {
+			...puppet code...
+		}
+
+		类的名字只能以小写字母开头
+
+		调用类：
+			include class1, class2, ...
+			class {'classname': }
+
+		定义带参数的类：
+			class my_class ($para1=value1, $para2=value2) {
+				...puppet code...
+			}
+
+			调用时，传递参数：
+			class {'class_name':
+				para1	=>  new_value1,
+				para2 	=> 	new_value2,
+			}
+
+			class createuser ($grpname=testgrp,$username=testuser) {
+			        group{"$grpname":
+			                ensure  => present,
+			        }
+
+			        user{"$username":
+			                ensure  => present,
+			                gid     => $grpname,
+			        }
+			}
+
+			class {'createuser':
+			        grpname => mageedu,
+			        username => mageedu,
+			}
+
+			类的继承：
+				(1) 继承资源属性；
+				(2) 覆盖资源属性；
+					=>
+				(3) 追加资源属性；
+					+>
+
+	puppet模块：为了实现某种完备功能而组织成的一个独立的、自我包含的目录结构
+		模块名：目录名
+
+		目录结构：
+			module_name:
+				manifests
+					init.pp: 必须声明一个类，类名与模块名相同; 					
+					*.pp:
+						MODULE_NAME::[SUBDIR_NAME]::MANIFESTS_FILE_NAME
+				files:
+					静态文件
+						puppet url:
+							puppet:///modules/MODULE_NAME/[SUBDIR_NAME]/FILE_NAME
+
+					file{'nginx.conf':
+						source 	=> puppet:///modules/nginx/nginx.conf
+					}
+				templates: 
+					模板文件：*.erb
+						template('MODULE_NAME/TEMPLATE_FILE_NAME');
+
+
+						file{'nginx.conf':
+							content 	=> template('模板文件'),
+						}
+
+				lib: 插件
+				tests: 模块使用说明文档
+				spec: lib目录下的插件使用说明文档
+
+	master/agent: 
+		依赖于主机名称互相通信
+			DNS
+
+			主机名命令规范：
+				角色-运营商-机房名-IP.管理域名
+				web1-unicom-sh-1.1.1.1.magedu.com
+
+	定义节点：
+		node 'NODE_NAME' {
+			变量
+			声明类
+		}
+
+		定义在站点清单：/etc/puppet/manifests/site.pp
+
+	节点名称定义亦可以继承：
+		node basenode {
+			$dbport = 3306
+			include baseserver
+		}
+
+		node "node2.magedu.com" inherits basenode {
+			include nginx
+		}
+
+		node "node3.magedu.com" inherits basenode {
+			$dbport = 3307
+			include mysql
+		}
+
+		目的：为所有节点应用相同的全局变量，以及完成节点的初始化；
+
+		节点定义方式：
+			1、每节点单独定义；
+			2、在节点名称中使用正则表达式；
+				node "/node[0-9]+\.magedu\.com/" {
+
+				}
+
+	puppet进程的配置文件：puppet.conf
+		生成配置：puppet master --genconfig > /etc/puppet/puppet.conf
+			      puppet agent --genconfig >> /etc/puppet/puppet.conf
+
+			[main], [master], [agent]
+
+		了解配置文件路径：puppet doc --configprint confdir
+
+	master端而言：/etc/puppet/manifests/site.pp
+		站点清单
+
+		认证配置文件：auth.conf
+			应用于puppet的restful风格的API的访问授权；
+
+		名称空间访问认证配置文件：namespaceauth.conf
+			[puppetmaster]
+				allow *.magedu.com
+
+		autosign.conf
+
+	配置puppet master支持多种不同的环境：
+		puppet.conf
+			[master]
+			environment = development, testing, production
+
+			[development]
+			manifests = /etc/puppet/manifests/development/site.pp
+			modulepath = /etc/puppet/modules/development/:/usr/share/modules/development
+			fileserverconfig = /etc/puppet/fileserver.conf.development
+
+			[testing]
+			manifests = /etc/puppet/manifests/testing/site.pp
+			modulepath = /etc/puppet/modules/testing/:/usr/share/modules/testing
+			fileserverconfig = /etc/puppet/fileserver.conf.testing
+			
+			[production]
+			manifests = /etc/puppet/manifests/production/site.pp
+			modulepath = /etc/puppet/modules/production/:/usr/share/modules/production
+			fileserverconfig = /etc/puppet/fileserver.conf.production
+
+		puppet agent:
+			[agent]
+			environment = development
+
+	模块管理：
+		Puppet Forge: puppet维护模块仓库，大部分由第三方作者提供
+
+		puppet module
+			list
+			search 
+			install
+
+	Puppet kick机制：
+		紧急推送配置时使用。
+
+	puppet架构扩展：
+		单台master节点可能会出现瓶颈之处：
+			认证功能
+			文件服务
+			网络
+
+		解决思路：单机扩展
+			Nginx+Mongrel
+			Apache+Passenger
+			Nginx+Passenger
+
+		解决思路：多机扩展
+
+	mcollective
+
+	Foreman
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
